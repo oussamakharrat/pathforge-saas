@@ -7,11 +7,10 @@
  */
 
 import { useMemo, useState } from "react";
-import { TrendingUp, TrendingDown, Minus, BarChart3, Search, ExternalLink, ArrowUp, ArrowDown } from "lucide-react";
-import { FLAME, CARBON } from "../lib/constants";
+import { TrendingUp, TrendingDown, Minus, BarChart3, Search, ArrowUp } from "lucide-react";
+import { CARBON } from "../lib/constants";
 import { Card } from "./Card";
 import { getMarketTrends } from "../services/career-engine";
-import type { TrendDataPoint } from "../services/career-engine";
 
 const CATEGORIES = ["All", "DevOps", "Cloud", "Language", "Frontend", "API", "Architecture", "AI", "Database"];
 

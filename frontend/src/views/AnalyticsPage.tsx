@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo } from "react";
-import { BarChart3, TrendingUp, TrendingDown, Target, Zap, BookOpen, Briefcase, Award, Calendar, Download, Sparkles, ArrowUpRight, Users, DollarSign, Mic } from "lucide-react";
+import { TrendingUp, Target, Zap, BookOpen, Briefcase, Award, Download, Sparkles, Mic } from "lucide-react";
 import { FLAME, CARBON, ALABASTER, DUST } from "../lib/constants";
 import { Card } from "../components/Card";
 import { Bar } from "../components/Bar";
@@ -15,7 +15,12 @@ export default function AnalyticsPage() {
   const { skills, goals, learningSteps, outcomes, careerScore, quizResults, dashboardMetrics } = useCareerData();
   const [period, setPeriod] = useState<Period>("30d");
 
-  const avgSkill = useMemo(() => Math.round(skills.reduce((s, k) => s + k.pct, 0) / skills.length), [skills]);
+  const avgSkill = useMemo(
+    () => skills.length > 0
+      ? Math.round(skills.reduce((s, k) => s + k.pct, 0) / skills.length)
+      : 0,
+    [skills],
+  );
   const learningDone = learningSteps.filter(s => s.done).length;
   const goalAvgProgress = useMemo(() => Math.round(goals.reduce((s, g) => s + g.progress, 0) / (goals.length || 1)), [goals]);
 

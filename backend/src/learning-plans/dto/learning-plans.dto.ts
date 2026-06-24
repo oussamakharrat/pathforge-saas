@@ -1,4 +1,10 @@
-import { IsString, IsOptional, IsArray, IsBoolean, IsInt } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsArray,
+  IsBoolean,
+  IsInt,
+} from 'class-validator';
 
 export class CreateLearningPlanDto {
   @IsString() title: string;

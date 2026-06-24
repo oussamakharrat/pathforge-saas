@@ -26,7 +26,10 @@ export class LearningPlansService {
   async findAll(userId: string) {
     return this.prisma.learningPlan.findMany({
       where: { userId },
-      include: { items: { orderBy: { order: 'asc' } }, skills: { include: { skillCatalog: true } } },
+      include: {
+        items: { orderBy: { order: 'asc' } },
+        skills: { include: { skillCatalog: true } },
+      },
       orderBy: { createdAt: 'desc' },
     });
   }
@@ -35,7 +38,10 @@ export class LearningPlansService {
     const plan = assertFound(
       await this.prisma.learningPlan.findUnique({
         where: { id },
-        include: { items: { orderBy: { order: 'asc' } }, skills: { include: { skillCatalog: true } } },
+        include: {
+          items: { orderBy: { order: 'asc' } },
+          skills: { include: { skillCatalog: true } },
+        },
       }),
       'Learning plan',
     );
@@ -44,6 +50,14 @@ export class LearningPlansService {
   }
 
   async create(userId: string, dto: CreateLearningPlanDto) {
+    if (dto.goalId) {
+      const goal = assertFound(
+        await this.prisma.goal.findUnique({ where: { id: dto.goalId } }),
+        'Goal',
+      );
+      assertOwner(goal.userId, userId);
+    }
+
     const items = dto.items ?? [];
     const progress = 0;
 
@@ -66,7 +80,11 @@ export class LearningPlansService {
             }
           : undefined,
         skills: dto.skillCatalogIds?.length
-          ? { create: dto.skillCatalogIds.map((skillCatalogId) => ({ skillCatalogId })) }
+          ? {
+              create: dto.skillCatalogIds.map((skillCatalogId) => ({
+                skillCatalogId,
+              })),
+            }
           : undefined,
       },
       include: { items: true, skills: { include: { skillCatalog: true } } },
@@ -79,6 +97,14 @@ export class LearningPlansService {
   async update(userId: string, id: string, dto: UpdateLearningPlanDto) {
     await this.findOne(userId, id);
 
+    if (dto.goalId) {
+      const goal = assertFound(
+        await this.prisma.goal.findUnique({ where: { id: dto.goalId } }),
+        'Goal',
+      );
+      assertOwner(goal.userId, userId);
+    }
+
     return this.prisma.learningPlan.update({
       where: { id },
       data: {
@@ -86,8 +112,7 @@ export class LearningPlansService {
         description: dto.description,
         goalId: dto.goalId,
         status: dto.status as LearningPlanStatus | undefined,
-        completedAt:
-          dto.status === 'completed' ? new Date() : undefined,
+        completedAt: dto.status === 'completed' ? new Date() : undefined,
       },
       include: { items: true },
     });
@@ -115,7 +140,9 @@ export class LearningPlansService {
       },
     });
 
-    const items = await this.prisma.learningItem.findMany({ where: { planId } });
+    const items = await this.prisma.learningItem.findMany({
+      where: { planId },
+    });
     return this.prisma.learningPlan.update({
       where: { id: planId },
       data: { progress: this.recalcProgress(items) },
@@ -123,13 +150,19 @@ export class LearningPlansService {
     });
   }
 
-  async toggleItem(userId: string, planId: string, itemId: string, dto: ToggleLearningItemDto) {
+  async toggleItem(
+    userId: string,
+    planId: string,
+    itemId: string,
+    dto: ToggleLearningItemDto,
+  ) {
     await this.findOne(userId, planId);
     const item = assertFound(
       await this.prisma.learningItem.findUnique({ where: { id: itemId } }),
       'Learning item',
     );
-    if (item.planId !== planId) throw new BadRequestException('Item does not belong to this plan');
+    if (item.planId !== planId)
+      throw new BadRequestException('Item does not belong to this plan');
 
     const completed = dto.completed ?? !item.completed;
     await this.prisma.learningItem.update({
@@ -137,7 +170,9 @@ export class LearningPlansService {
       data: { completed, completedAt: completed ? new Date() : null },
     });
 
-    const items = await this.prisma.learningItem.findMany({ where: { planId } });
+    const items = await this.prisma.learningItem.findMany({
+      where: { planId },
+    });
     const progress = this.recalcProgress(items);
     const allDone = progress >= 100;
 
@@ -145,8 +180,10 @@ export class LearningPlansService {
       where: { id: planId },
       data: {
         progress,
-        status: allDone ? LearningPlanStatus.completed : undefined,
-        completedAt: allDone ? new Date() : undefined,
+        status: allDone
+          ? LearningPlanStatus.completed
+          : LearningPlanStatus.active,
+        completedAt: allDone ? new Date() : null,
       },
       include: { items: { orderBy: { order: 'asc' } } },
     });

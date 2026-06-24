@@ -3,7 +3,11 @@ import { ReactionType } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsHelper } from '../common/notifications.helper';
 import { assertFound } from '../common/assertions';
-import { CreatePostDto, CreateCommentDto, CreateReactionDto } from './dto/community.dto';
+import {
+  CreatePostDto,
+  CreateCommentDto,
+  CreateReactionDto,
+} from './dto/community.dto';
 
 @Injectable()
 export class CommunityService {
@@ -13,11 +17,20 @@ export class CommunityService {
   ) {}
 
   async listPosts() {
-    return this.prisma.communityPost.findMany({
+    const posts = await this.prisma.communityPost.findMany({
       where: { isArchived: false },
       orderBy: [{ isPinned: 'desc' }, { createdAt: 'desc' }],
       take: 50,
+      include: {
+        user: { select: { displayName: true, email: true } },
+      },
     });
+
+    return posts.map((post) => ({
+      ...post,
+      authorName:
+        post.user.displayName || post.user.email.split('@')[0] || 'Member',
+    }));
   }
 
   async getPost(id: string) {

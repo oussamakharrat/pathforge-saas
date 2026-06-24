@@ -13,7 +13,10 @@ export class SubscriptionsController {
   }
 
   @Patch('me')
-  update(@CurrentUser() user: { id: string }, @Body() dto: UpdateSubscriptionDto) {
+  update(
+    @CurrentUser() user: { id: string },
+    @Body() dto: UpdateSubscriptionDto,
+  ) {
     return this.service.update(user.id, dto);
   }
 }

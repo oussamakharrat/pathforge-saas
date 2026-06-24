@@ -52,7 +52,9 @@ export class GoalsService {
         careerPath: dto.careerPath ?? '',
         skills: dto.skillCatalogIds?.length
           ? {
-              create: dto.skillCatalogIds.map((skillCatalogId) => ({ skillCatalogId })),
+              create: dto.skillCatalogIds.map((skillCatalogId) => ({
+                skillCatalogId,
+              })),
             }
           : undefined,
       },
@@ -79,7 +81,10 @@ export class GoalsService {
       await this.prisma.goalSkill.deleteMany({ where: { goalId: id } });
       if (dto.skillCatalogIds.length) {
         await this.prisma.goalSkill.createMany({
-          data: dto.skillCatalogIds.map((skillCatalogId) => ({ goalId: id, skillCatalogId })),
+          data: dto.skillCatalogIds.map((skillCatalogId) => ({
+            goalId: id,
+            skillCatalogId,
+          })),
         });
       }
     }
@@ -106,7 +111,9 @@ export class GoalsService {
   async addMilestone(userId: string, goalId: string, dto: AddMilestoneDto) {
     const goal = await this.findOne(userId, goalId);
     if (goal.status === GoalStatus.completed) {
-      throw new BadRequestException('Cannot modify milestones on a completed goal');
+      throw new BadRequestException(
+        'Cannot modify milestones on a completed goal',
+      );
     }
 
     const milestones = parseMilestones(goal.milestones);
@@ -133,10 +140,16 @@ export class GoalsService {
     });
   }
 
-  async toggleMilestone(userId: string, goalId: string, dto: ToggleMilestoneDto) {
+  async toggleMilestone(
+    userId: string,
+    goalId: string,
+    dto: ToggleMilestoneDto,
+  ) {
     const goal = await this.findOne(userId, goalId);
     if (goal.status === GoalStatus.completed) {
-      throw new BadRequestException('Cannot modify milestones on a completed goal');
+      throw new BadRequestException(
+        'Cannot modify milestones on a completed goal',
+      );
     }
 
     const milestones = parseMilestones(goal.milestones).map((m) => {

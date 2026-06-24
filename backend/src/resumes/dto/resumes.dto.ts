@@ -1,4 +1,11 @@
-import { IsString, IsOptional, IsArray, IsInt, Min, Max } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsArray,
+  IsInt,
+  Min,
+  Max,
+} from 'class-validator';
 
 export class CreateResumeDto {
   @IsOptional() @IsString() title?: string;

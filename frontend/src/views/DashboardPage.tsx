@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import { useNavigate } from "@/lib/router";
 import {
   Flame, Briefcase, Zap, BookOpen, Sparkles, TrendingUp,
-  Target, Send, ArrowRight, AlertCircle, Award,
+  Send, ArrowRight, Award,
 } from "lucide-react";
 import { FLAME, CARBON } from "../lib/constants";
 import { Card } from "../components/Card";
@@ -18,10 +18,19 @@ import NextMoveEngine from "../components/NextMoveEngine";
 
 export default function DashboardPage() {
   const navigate = useNavigate();
-  const { canAccess } = useAuth();
+  const { canAccess, user, profile } = useAuth();
   const { requestUpgrade } = useUpgrade();
-  const { skills, goals, learningSteps, careerScore, outcomes, quizResults, recalculateJobMatch } = useCareerData();
+  const { skills, goals, learningSteps, careerScore, outcomes, recalculateJobMatch, avgGoalProgress, avgSkillPct } = useCareerData();
   const { kanban } = useJobs();
+
+  const displayName = useMemo(() => {
+    const name = user?.name || profile?.name;
+    if (name?.trim()) return name.trim().split(/\s+/)[0];
+    if (user?.email) return user.email.split('@')[0];
+    return 'there';
+  }, [user, profile]);
+
+  const streakDays = user?.streakDays ?? 0;
 
   const safeNavigate = (path: string, pageId: string, label: string) => {
     if (!canAccess(pageId)) {
@@ -31,12 +40,13 @@ export default function DashboardPage() {
     }
   };
 
-  const avgSkill = Math.round(skills.reduce((s, k) => s + k.pct, 0) / skills.length);
+  const avgSkill = skills.length > 0
+    ? Math.round(skills.reduce((s, k) => s + k.pct, 0) / skills.length)
+    : 0;
   const learningDone = learningSteps.filter(s => s.done).length;
   const learningTotal = learningSteps.length;
   const nextStep = learningSteps.find(s => !s.done);
   const weakSkills = skills.filter(s => s.pct < 50).sort((a, b) => a.pct - b.pct);
-  const strongSkills = skills.filter(s => s.pct >= 80).sort((a, b) => b.pct - a.pct);
 
   // ── Insight 1: Best job match ──
   const bestMatch = useMemo(() => {
@@ -106,25 +116,6 @@ export default function DashboardPage() {
   }, [avgSkill, goals, outcomes]);
 
   // ── Insight 6: Resume score (derived from skills) ──
-  const resumeScore = avgSkill;
-  const recentQuiz = quizResults.length > 0 ? quizResults[quizResults.length - 1] : null;
-  const hasRecentImprovement = recentQuiz && recentQuiz.pct > 60;
-
-  // ── Overdue goals ──
-  const overdueCount = useMemo(() => {
-    const now = new Date();
-    return goals.filter(g => {
-      const match = g.deadline.match(/(\w+)\s*(\d{4})?/);
-      if (!match) return false;
-      const monthStr = match[1];
-      const year = match[2] ? parseInt(match[2]) : now.getFullYear();
-      const months = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
-      const monthIdx = months.indexOf(monthStr.toLowerCase().slice(0, 3));
-      if (monthIdx === -1) return false;
-      const deadlineDate = new Date(year, monthIdx + 1, 0);
-      return deadlineDate < now && g.progress < 100;
-    }).length;
-  }, [goals]);
 
   // ── Personalized insight sentence ──
   const personalizedInsight = useMemo(() => {
@@ -140,21 +131,12 @@ export default function DashboardPage() {
     if (careerPath.length > 0) {
       return `You're ${careerPath[0].progress}% toward "${careerPath[0].title}". Keep going!`;
     }
+    if (profile?.targetRole) {
+      const progress = goals.length > 0 ? avgGoalProgress : avgSkillPct;
+      return `You're ${progress}% toward "${profile.targetRole}". Keep going!`;
+    }
     return "Set your first goal to get personalized insights.";
-  }, [nextStepImpact, weakSkills, skillJobInsight, careerPath]);
-
-  const secondInsight = useMemo(() => {
-    if (hasRecentImprovement) {
-      return `Your skills are improving — latest quiz: ${recentQuiz?.pct}% on ${recentQuiz?.skillName}.`;
-    }
-    if (weakSkills.length > 0) {
-      return `${weakSkills.length} skill gap${weakSkills.length > 1 ? "s" : ""} to close before your next job move.`;
-    }
-    if (outcomes.totalApplications === 0) {
-      return "Start applying to see how your profile matches the market.";
-    }
-    return `Resume strength: ${resumeScore}% — ${resumeScore < 60 ? "focus on filling skill gaps" : "looking solid, keep shipping"}.`;
-  }, [hasRecentImprovement, recentQuiz, weakSkills, outcomes, resumeScore]);
+  }, [nextStepImpact, weakSkills, skillJobInsight, careerPath, profile?.targetRole, goals.length, avgGoalProgress, avgSkillPct]);
 
   return (
     <div className="space-y-6">
@@ -197,7 +179,7 @@ export default function DashboardPage() {
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="space-y-1.5">
             <h1 className="text-xl font-bold tracking-tight" style={{ color: CARBON }}>
-              Good to see you, Jordan ✦
+              Good to see you, {displayName} ✦
             </h1>
             <p className="text-sm text-muted-foreground max-w-xl leading-relaxed">
               {personalizedInsight}
@@ -205,10 +187,14 @@ export default function DashboardPage() {
           </div>
 
           <div className="flex items-center gap-2 flex-shrink-0">
-            <div className="flex items-center gap-1.5 rounded-full border border-border bg-white/80 px-3.5 py-1.5 shadow-sm backdrop-blur-sm">
-              <Flame className="w-4 h-4" style={{ color: FLAME }} />
-              <span className="text-xs font-semibold" style={{ color: CARBON }}>7-day streak</span>
-            </div>
+            {streakDays > 0 && (
+              <div className="flex items-center gap-1.5 rounded-full border border-border bg-white/80 px-3.5 py-1.5 shadow-sm backdrop-blur-sm">
+                <Flame className="w-4 h-4" style={{ color: FLAME }} />
+                <span className="text-xs font-semibold" style={{ color: CARBON }}>
+                  {streakDays}-day streak
+                </span>
+              </div>
+            )}
             <Btn size="sm" onClick={() => safeNavigate("/app/coach", "coach", "AI Coach")}>
               <Sparkles className="w-3.5 h-3.5" /> Ask AI
             </Btn>
@@ -231,13 +217,19 @@ export default function DashboardPage() {
               Improve {skillJobInsight.skillToFix}
             </button>
           )}
-          {bestMatch && (
+          {bestMatch ? (
             <button onClick={() => safeNavigate("/app/tracker", "tracker", "Jobs")}
               className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-white border border-border text-xs font-semibold hover:border-emerald-200 hover:bg-emerald-50/50 transition-all shadow-sm">
               <Briefcase className="w-3.5 h-3.5" style={{ color: "#10B981" }} />
-              Best match: {bestMatch.company}
+              Best match: {bestMatch.role}
             </button>
-          )}
+          ) : profile?.targetRole ? (
+            <button onClick={() => safeNavigate("/app/goals", "goals", "Goals")}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-white border border-border text-xs font-semibold hover:border-emerald-200 hover:bg-emerald-50/50 transition-all shadow-sm">
+              <Briefcase className="w-3.5 h-3.5" style={{ color: "#10B981" }} />
+              Target role: {profile.targetRole}
+            </button>
+          ) : null}
         </div>
       </section>
 
@@ -286,7 +278,7 @@ export default function DashboardPage() {
             <p className="text-sm font-semibold mb-0.5" style={{ color: CARBON }}>AI Assessment</p>
             <p className="text-[13px] text-muted-foreground leading-relaxed">
               {weakSkills.length > 0 ? (
-                <>You're <strong className="text-foreground">{weakSkills.length} skill{weakSkills.length > 1 ? "s" : ""}</strong> away from qualifying for <strong className="text-foreground">{skillJobInsight.blockedCount}+ additional jobs</strong>. Focus on <button onClick={() => safeNavigate("/app/skills", "skills", "Skills")} className="font-bold underline decoration-dotted underline-offset-2 hover:no-underline" style={{ color: FLAME }}>{weakSkills[0].name}</button> to unlock the most opportunities.</>
+                <>You&apos;re <strong className="text-foreground">{weakSkills.length} skill{weakSkills.length > 1 ? "s" : ""}</strong> away from qualifying for <strong className="text-foreground">{skillJobInsight.blockedCount}+ additional jobs</strong>. Focus on <button onClick={() => safeNavigate("/app/skills", "skills", "Skills")} className="font-bold underline decoration-dotted underline-offset-2 hover:no-underline" style={{ color: FLAME }}>{weakSkills[0].name}</button> to unlock the most opportunities.</>
               ) : (
                 <>Your skills are competitive. Start applying to see how you match against real roles.</>
               )}

@@ -45,7 +45,7 @@ export function ResumeProvider({ children }: { children: ReactNode }) {
   }, [authed]);
 
   useEffect(() => {
-    void refresh();
+    queueMicrotask(() => { void refresh(); });
   }, [refresh]);
 
   const createResume = useCallback(async (title: string) => {

@@ -1,4 +1,12 @@
-import { Controller, Get, Post, Patch, Delete, Body, Param } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Body,
+  Param,
+} from '@nestjs/common';
 import { JobsService } from './jobs.service';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import {
@@ -26,7 +34,10 @@ export class JobsController {
   }
 
   @Post('postings')
-  createJob(@CurrentUser() user: { id: string }, @Body() dto: CreateJobPostingDto) {
+  createJob(
+    @CurrentUser() user: { id: string },
+    @Body() dto: CreateJobPostingDto,
+  ) {
     return this.service.createJob(user.id, dto);
   }
 
@@ -55,7 +66,10 @@ export class JobsController {
   }
 
   @Post('applications')
-  createApplication(@CurrentUser() user: { id: string }, @Body() dto: CreateApplicationDto) {
+  createApplication(
+    @CurrentUser() user: { id: string },
+    @Body() dto: CreateApplicationDto,
+  ) {
     return this.service.createApplication(user.id, dto);
   }
 
@@ -84,7 +98,12 @@ export class JobsController {
     @Param('interviewId') interviewId: string,
     @Body() dto: UpdateInterviewDto,
   ) {
-    return this.service.updateInterview(user.id, applicationId, interviewId, dto);
+    return this.service.updateInterview(
+      user.id,
+      applicationId,
+      interviewId,
+      dto,
+    );
   }
 
   @Post('applications/:id/offers')

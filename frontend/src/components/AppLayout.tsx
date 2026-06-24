@@ -9,7 +9,7 @@ import { MobileNav } from '@/components/MobileNav';
 import { useUpgrade } from '@/contexts/UpgradeContext';
 import { NotificationBell } from '@/components/NotificationBell';
 import { Menu } from 'lucide-react';
-import { FLAME, CARBON, NAV_ITEMS } from '@/lib/constants';
+import { CARBON, NAV_ITEMS } from '@/lib/constants';
 import { Navigate } from '@/lib/router';
 import { PageLoading } from '@/components/PageLoading';
 
@@ -24,11 +24,9 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const { requestUpgrade } = useUpgrade();
   const pathname = usePathname() ?? '/app/dashboard';
   const router = useRouter();
-  const [sidebarExpanded, setSidebarExpanded] = useState(false);
-
-  useEffect(() => {
-    setSidebarExpanded(window.innerWidth >= 768);
-  }, []);
+  const [sidebarExpanded, setSidebarExpanded] = useState(
+    () => typeof window !== 'undefined' && window.innerWidth >= 768,
+  );
 
   const currentPage = pathname.split('/').pop() || 'dashboard';
   const pageTitle =
@@ -37,15 +35,19 @@ export function AppLayout({ children }: { children: ReactNode }) {
 
   const [checkedAccess, setCheckedAccess] = useState(false);
   useEffect(() => {
-    if (!checkedAccess && !canAccess(currentPage)) {
-      const navItem = NAV_ITEMS.find((item) => item.id === currentPage);
-      requestUpgrade(currentPage, navItem?.label ?? currentPage);
-    }
-    setCheckedAccess(true);
+    queueMicrotask(() => {
+      if (!checkedAccess && !canAccess(currentPage)) {
+        const navItem = NAV_ITEMS.find((item) => item.id === currentPage);
+        requestUpgrade(currentPage, navItem?.label ?? currentPage);
+      }
+      setCheckedAccess(true);
+    });
   }, [currentPage, canAccess, requestUpgrade, checkedAccess]);
 
   useEffect(() => {
-    if (window.innerWidth < 768) setSidebarExpanded(false);
+    queueMicrotask(() => {
+      if (window.innerWidth < 768) setSidebarExpanded(false);
+    });
   }, [pathname]);
 
   useEffect(() => {

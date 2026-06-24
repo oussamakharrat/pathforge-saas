@@ -132,7 +132,10 @@ export type OutcomeMetrics = {
 export type UserProfile = {
   name: string;
   email: string;
+  currentRole: string;
   targetRole: string;
+  location: string;
+  bio: string;
   experienceLevel: "0-1" | "1-3" | "3-5" | "5-10" | "10+";
   educationLevel: "high-school" | "associate" | "bachelor" | "master" | "phd" | "bootcamp";
   referralSource: "social-media" | "google" | "friend" | "podcast" | "blog" | "other";

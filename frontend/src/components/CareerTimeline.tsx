@@ -7,7 +7,7 @@
  */
 
 import { useMemo, useState } from "react";
-import { Clock, BookOpen, Target, Zap, Briefcase, Mic, Sparkles, Award, TrendingUp, FileText, Filter } from "lucide-react";
+import { Clock, BookOpen, Target, Zap, Briefcase, Sparkles, Award, type LucideIcon } from "lucide-react";
 import { FLAME, CARBON } from "../lib/constants";
 import { Card } from "./Card";
 import { useCareerData } from "../contexts/CareerDataContext";
@@ -21,7 +21,7 @@ const CATEGORY_COLORS: Record<string, string> = {
   Services: "#F59E0B",
 };
 
-const CATEGORY_ICONS: Record<string, any> = {
+const CATEGORY_ICONS: Record<string, LucideIcon> = {
   Learning: BookOpen,
   Goals: Target,
   Skills: Zap,

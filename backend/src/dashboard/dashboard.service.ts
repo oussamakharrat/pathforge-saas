@@ -10,7 +10,37 @@ export class DashboardService {
   ) {}
 
   async getProgressDashboard(userId: string) {
-    return this.projector.refresh(userId);
+    const dashboard = await this.projector.refresh(userId);
+    const [
+      totalApplications,
+      totalInterviews,
+      interviewsCompleted,
+      totalOffers,
+      negotiationsCompleted,
+    ] = await Promise.all([
+      this.prisma.application.count({ where: { userId } }),
+      this.prisma.interview.count({
+        where: { application: { userId } },
+      }),
+      this.prisma.interview.count({
+        where: { application: { userId }, status: 'completed' },
+      }),
+      this.prisma.offer.count({
+        where: { application: { userId } },
+      }),
+      this.prisma.negotiation.count({
+        where: { userId, status: 'accepted' },
+      }),
+    ]);
+
+    return {
+      ...dashboard,
+      totalApplications,
+      totalInterviews,
+      interviewsCompleted,
+      totalOffers,
+      negotiationsCompleted,
+    };
   }
 
   async getCareerMetrics(userId: string) {
@@ -22,7 +52,9 @@ export class DashboardService {
       where: { userId },
       include: { skills: true },
     });
-    const userSkills = await this.prisma.userSkill.findMany({ where: { userId } });
+    const userSkills = await this.prisma.userSkill.findMany({
+      where: { userId },
+    });
     const userSkillIds = new Set(userSkills.map((s) => s.skillCatalogId));
 
     const insights = await Promise.all(
@@ -31,7 +63,9 @@ export class DashboardService {
         const missing = required.filter((id) => !userSkillIds.has(id));
         const matchPercentage =
           required.length > 0
-            ? Math.round(((required.length - missing.length) / required.length) * 100)
+            ? Math.round(
+                ((required.length - missing.length) / required.length) * 100,
+              )
             : job.matchScore;
 
         return this.prisma.jobMatchInsight.upsert({
@@ -66,9 +100,13 @@ export class DashboardService {
       byRole.get(role)!.push(i.score);
     }
 
-    const results: Awaited<ReturnType<typeof this.prisma.interviewReadiness.upsert>>[] = [];
+    const results: Awaited<
+      ReturnType<typeof this.prisma.interviewReadiness.upsert>
+    >[] = [];
     for (const [role, scores] of byRole) {
-      const readinessScore = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
+      const readinessScore = Math.round(
+        scores.reduce((a, b) => a + b, 0) / scores.length,
+      );
       const row = await this.prisma.interviewReadiness.upsert({
         where: { userId_role: { userId, role } },
         create: {

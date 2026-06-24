@@ -9,7 +9,6 @@ import {
 import { cn } from "../lib/utils";
 import { FLAME, CARBON, ALABASTER, DUST } from "../lib/constants";
 import { Btn } from "../components/Btn";
-import { Card } from "../components/Card";
 import { BrandLogo } from "../components/BrandLogo";
 import { useAuth } from "../contexts/AuthContext";
 import { FAQS } from "../data/initial-data";

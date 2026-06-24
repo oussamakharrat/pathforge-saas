@@ -20,14 +20,20 @@ export function validateStatusTransition(
   }
 
   if (toIdx < fromIdx) {
-    throw new BadRequestException('Cannot move application backward in pipeline');
+    throw new BadRequestException(
+      'Cannot move application backward in pipeline',
+    );
   }
 
   if (to === ApplicationStatus.interview && !hasInterviews) {
-    throw new BadRequestException('Cannot set interview status without at least one interview');
+    throw new BadRequestException(
+      'Cannot set interview status without at least one interview',
+    );
   }
 
   if (to === ApplicationStatus.offer && !hasOffers) {
-    throw new BadRequestException('Cannot set offer status without at least one offer');
+    throw new BadRequestException(
+      'Cannot set offer status without at least one offer',
+    );
   }
 }

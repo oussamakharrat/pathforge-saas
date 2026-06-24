@@ -4,7 +4,6 @@ import { useState, useCallback } from "react";
 import { ArrowRight, Check, Sparkles, Briefcase, GraduationCap, Lightbulb, Users, HeartHandshake, Target, Code, PenLine, BarChart3, Globe, MessageCircle, Podcast, Hash } from "lucide-react";
 import { FLAME, CARBON, DUST, ALABASTER } from "../lib/constants";
 import { Btn } from "./Btn";
-import { Chip } from "./Chip";
 import { useAuth } from "../contexts/AuthContext";
 import type { UserProfile } from "../data/types";
 
@@ -104,7 +103,6 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
   const [education, setEducation] = useState<UserProfile["educationLevel"] | null>(null);
   const [challenges, setChallenges] = useState<string[]>([]);
   const [referral, setReferral] = useState<UserProfile["referralSource"] | null>(null);
-  const [animDir, setAnimDir] = useState<"forward" | "back">("forward");
 
   const current = STEPS[stepIndex];
   const isFirst = stepIndex === 0;
@@ -137,14 +135,12 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
       });
       onComplete();
     } else {
-      setAnimDir("forward");
       setStepIndex(i => i + 1);
     }
   };
 
   const handleBack = () => {
     if (isFirst) return;
-    setAnimDir("back");
     setStepIndex(i => i - 1);
   };
 
@@ -171,7 +167,7 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
             <span style={{ color: FLAME }}>to personalize</span>
           </h2>
           <p className="text-[14px] leading-relaxed" style={{ color: DUST }}>
-            We'll use your answers to tailor your AI coach, learning roadmap, skill benchmarks, and career insights — built around <strong className="text-white">your</strong> goals.
+            We&apos;ll use your answers to tailor your AI coach, learning roadmap, skill benchmarks, and career insights — built around <strong className="text-white">your</strong> goals.
           </p>
           <div className="mt-8 space-y-3">
             {STEPS.map((s, i) => {
@@ -238,7 +234,7 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
                     style={{ backgroundColor: ALABASTER }}
                   />
                 </div>
-                <p className="text-[11px] text-muted-foreground">Be as specific as you'd like — we'll use this to customize your roadmap.</p>
+                <p className="text-[11px] text-muted-foreground">Be as specific as you&apos;d like — we&apos;ll use this to customize your roadmap.</p>
                 <div className="flex flex-wrap gap-2">
                   {[
                     "Senior Frontend Engineer",

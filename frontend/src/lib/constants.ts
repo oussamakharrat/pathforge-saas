@@ -1,4 +1,5 @@
-import { LayoutDashboard, Target, Zap, FileText, BookOpen, Layers, MessageSquare, Mic, DollarSign, Package, Award, Settings, FolderKanban, Trophy, Users, BarChart3, HelpCircle } from "lucide-react";
+import { LayoutDashboard, Target, Zap, FileText, BookOpen, Layers, MessageSquare, Mic, DollarSign, Package, FolderKanban, Trophy, Users, BarChart3 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import type { KanbanCol } from "../data/types";
 
 export const FLAME = "#F15025";
@@ -18,7 +19,7 @@ export const SPACE = {
 
 export type NavGroup = "core" | "growth" | "premium" | "other";
 
-export const NAV_ITEMS: { id: string; label: string; icon: any; group: NavGroup }[] = [
+export const NAV_ITEMS: { id: string; label: string; icon: LucideIcon; group: NavGroup }[] = [
   // ── Core ──
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, group: "core" },
   { id: "goals", label: "Career Hub", icon: Target, group: "core" },

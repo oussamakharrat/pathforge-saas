@@ -1,4 +1,6 @@
 import 'dotenv/config';
+import * as bcrypt from 'bcrypt';
+import type { Prisma } from '@prisma/client';
 import { createPrismaClient } from './create-client';
 
 const prisma = createPrismaClient();
@@ -154,6 +156,34 @@ async function main() {
   console.log(
     `Seeded ${SKILLS.length} skills, ${ACHIEVEMENTS.length} achievements, ${BADGES.length} badges`,
   );
+
+  const demoEmail = 'demo@pathforge.dev';
+  const demoPassword = await bcrypt.hash('password123', 10);
+
+  const demoUserCreate = {
+    email: demoEmail,
+    password: demoPassword,
+    displayName: 'Demo User',
+    authProviderId: `local:${demoEmail}`,
+    careerProfile: { create: {} },
+    subscription: { create: { plan: 'free', status: 'active' } },
+    progressDashboard: { create: {} },
+    careerMetrics: { create: {} },
+  } satisfies Prisma.UserCreateInput;
+
+  const demoUserUpdate = {
+    password: demoPassword,
+    displayName: 'Demo User',
+    isActive: true,
+  } satisfies Prisma.UserUpdateInput;
+
+  await prisma.user.upsert({
+    where: { email: demoEmail },
+    create: demoUserCreate,
+    update: demoUserUpdate,
+  });
+
+  console.log(`Demo account ready: ${demoEmail} / password123`);
 }
 
 main()

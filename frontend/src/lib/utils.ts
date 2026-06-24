@@ -2,6 +2,16 @@ export function cn(...c: (string | boolean | undefined | null)[]) {
   return c.filter(Boolean).join(" ");
 }
 
+export function getInitials(name: string): string {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((part) => part[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase() || "?";
+}
+
 export function extractSalaryNumber(salaryStr: string): string {
   if (!salaryStr) return "145000";
   const cleaned = salaryStr.toLowerCase().replace(/[^0-9\-km]/g, "");

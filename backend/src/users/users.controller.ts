@@ -1,7 +1,11 @@
 import { Controller, Get, Patch, Post, Put, Body, Param } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import { UpdateProfileDto, UpsertUserSkillDto, UpdateUserSkillDto } from './dto/users.dto';
+import {
+  UpdateProfileDto,
+  UpsertUserSkillDto,
+  UpdateUserSkillDto,
+} from './dto/users.dto';
 
 @Controller('users')
 export class UsersController {
@@ -13,7 +17,10 @@ export class UsersController {
   }
 
   @Patch('me/profile')
-  updateProfile(@CurrentUser() user: { id: string }, @Body() dto: UpdateProfileDto) {
+  updateProfile(
+    @CurrentUser() user: { id: string },
+    @Body() dto: UpdateProfileDto,
+  ) {
     return this.usersService.updateProfile(user.id, dto);
   }
 
@@ -23,7 +30,10 @@ export class UsersController {
   }
 
   @Post('me/skills')
-  upsertSkill(@CurrentUser() user: { id: string }, @Body() dto: UpsertUserSkillDto) {
+  upsertSkill(
+    @CurrentUser() user: { id: string },
+    @Body() dto: UpsertUserSkillDto,
+  ) {
     return this.usersService.upsertSkill(user.id, dto);
   }
 
@@ -42,7 +52,10 @@ export class UsersController {
   }
 
   @Patch('me/achievements/:id/seen')
-  markAchievementSeen(@CurrentUser() user: { id: string }, @Param('id') id: string) {
+  markAchievementSeen(
+    @CurrentUser() user: { id: string },
+    @Param('id') id: string,
+  ) {
     return this.usersService.markAchievementSeen(user.id, id);
   }
 

@@ -1,8 +1,12 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { DashboardProjector } from '../common/dashboard.projector';
 import { assertFound, assertOwner } from '../common/assertions';
-import { UpdateProfileDto, UpsertUserSkillDto, UpdateUserSkillDto } from './dto/users.dto';
+import {
+  UpdateProfileDto,
+  UpsertUserSkillDto,
+  UpdateUserSkillDto,
+} from './dto/users.dto';
 
 @Injectable()
 export class UsersService {
@@ -25,7 +29,8 @@ export class UsersService {
       }),
       'User',
     );
-    const { password: _, ...safe } = user;
+    const { password: _password, ...safe } = user;
+    void _password;
     return safe;
   }
 
@@ -58,13 +63,15 @@ export class UsersService {
   }
 
   async upsertSkill(userId: string, dto: UpsertUserSkillDto) {
+    const skillCatalogId = await this.resolveSkillCatalogId(dto);
+
     const skill = await this.prisma.userSkill.upsert({
       where: {
-        userId_skillCatalogId: { userId, skillCatalogId: dto.skillCatalogId },
+        userId_skillCatalogId: { userId, skillCatalogId },
       },
       create: {
         userId,
-        skillCatalogId: dto.skillCatalogId,
+        skillCatalogId,
         currentLevel: dto.currentLevel ?? 25,
         targetLevel: dto.targetLevel ?? 80,
       },
@@ -78,6 +85,39 @@ export class UsersService {
 
     await this.dashboard.refreshCareerMetrics(userId);
     return skill;
+  }
+
+  private async resolveSkillCatalogId(
+    dto: UpsertUserSkillDto,
+  ): Promise<string> {
+    if (dto.skillCatalogId) {
+      const catalog = await this.prisma.skillCatalog.findUnique({
+        where: { id: dto.skillCatalogId },
+      });
+      if (!catalog) {
+        throw new BadRequestException('Skill not found in catalog');
+      }
+      return catalog.id;
+    }
+
+    const trimmed = dto.name?.trim();
+    if (!trimmed) {
+      throw new BadRequestException('Provide skillCatalogId or name');
+    }
+
+    const existing = await this.prisma.skillCatalog.findUnique({
+      where: { name: trimmed },
+    });
+    if (existing) return existing.id;
+
+    const created = await this.prisma.skillCatalog.create({
+      data: {
+        name: trimmed,
+        category: dto.category?.trim() || 'Tools',
+        marketDemand: 'medium',
+      },
+    });
+    return created.id;
   }
 
   async updateSkill(userId: string, skillId: string, dto: UpdateUserSkillDto) {

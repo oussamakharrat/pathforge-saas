@@ -1,12 +1,10 @@
 'use client';
 
 import { useState } from "react";
-import { toast } from "sonner";
-import { Check, Sparkles, TrendingUp, BookOpen, Layers, Brain, FileText, Edit3, Map, DollarSign, Mic } from "lucide-react";
+import { Check, TrendingUp, Layers, FileText, Edit3, Map, DollarSign, Mic } from "lucide-react";
 import { FLAME, ALABASTER, CARBON } from "../lib/constants";
 import { Card } from "../components/Card";
 import { Chip } from "../components/Chip";
-import { Btn } from "../components/Btn";
 import { PageHeader } from "../components/PageHeader";
 import { SERVICES_LIST } from "../data/initial-data";
 import { useCareerData } from "../contexts/CareerDataContext";

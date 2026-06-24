@@ -77,7 +77,7 @@ export function GamificationProvider({ children }: { children: ReactNode }) {
   }, [authed]);
 
   useEffect(() => {
-    void refresh();
+    queueMicrotask(() => { void refresh(); });
   }, [refresh]);
 
   const value = useMemo(

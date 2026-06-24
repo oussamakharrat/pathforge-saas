@@ -9,7 +9,13 @@ interface AuthResponse {
 async function handleResponse<T>(res: Response): Promise<T> {
   if (!res.ok) {
     const error = await res.json().catch(() => ({ message: 'An error occurred' }));
-    throw new Error(error.message || `HTTP ${res.status}`);
+    const rawMessage = error.message;
+    const message = Array.isArray(rawMessage)
+      ? rawMessage.join(', ')
+      : typeof rawMessage === 'string'
+        ? rawMessage
+        : `HTTP ${res.status}`;
+    throw new Error(message);
   }
   return res.json();
 }

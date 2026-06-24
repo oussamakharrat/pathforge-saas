@@ -22,7 +22,6 @@ import type { Negotiation } from "../entities/negotiation";
 import type { Portfolio } from "../entities/portfolio";
 import type { Achievement } from "../entities/achievement";
 import type { CareerProfile } from "../entities/career-profile";
-import { SKILL_JOB_MAP } from "../entities/skill";
 
 // ── Input data required for computation ──
 

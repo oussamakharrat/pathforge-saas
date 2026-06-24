@@ -18,7 +18,10 @@ export class AiCoachController {
   }
 
   @Post('conversations')
-  create(@CurrentUser() user: { id: string }, @Body() dto: CreateConversationDto) {
+  create(
+    @CurrentUser() user: { id: string },
+    @Body() dto: CreateConversationDto,
+  ) {
     return this.service.createConversation(user.id, dto);
   }
 

@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react";
 import { useNavigate, useSearchParams } from "@/lib/router";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, ChevronLeft, ChevronRight, ArrowRight, Sparkles, Brain, BookOpen, Zap, Layers, Check, Clock, Target, X, AlertCircle } from "lucide-react";
+import { Plus, Pencil, Trash2, ChevronLeft, ChevronRight, ArrowRight, Sparkles, Brain, BookOpen, Zap, Layers, Check, Clock, Target, AlertCircle } from "lucide-react";
 import { cn } from "../lib/utils";
 import { FLAME, CARBON, DUST } from "../lib/constants";
 import { Card } from "../components/Card";

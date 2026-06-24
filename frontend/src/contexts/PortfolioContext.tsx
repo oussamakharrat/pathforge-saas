@@ -34,6 +34,12 @@ interface PortfolioContextType {
 
 const PortfolioContext = createContext<PortfolioContextType | null>(null);
 
+function normalizeExternalUrl(url: string): string {
+  if (!url.trim()) return '';
+  if (/^https?:\/\//i.test(url)) return url;
+  return `https://${url}`;
+}
+
 export function PortfolioProvider({ children }: { children: ReactNode }) {
   const { authed } = useAuth();
   const [projects, setProjects] = useState<PortfolioProject[]>([]);
@@ -53,16 +59,16 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
   }, [authed]);
 
   useEffect(() => {
-    void refresh();
+    queueMicrotask(() => { void refresh(); });
   }, [refresh]);
 
   const saveProject = useCallback(async (data: Parameters<PortfolioContextType['saveProject']>[0]) => {
     try {
       const payload = {
-        title: data.title,
-        description: data.desc,
-        demoUrl: data.url || undefined,
-        repoUrl: data.repo || undefined,
+        title: data.title.trim(),
+        description: data.desc.trim(),
+        demoUrl: normalizeExternalUrl(data.url),
+        repoUrl: normalizeExternalUrl(data.repo),
         technologies: data.tech,
         featured: data.featured,
         status: 'completed',
@@ -72,11 +78,12 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
         toast.success('Project updated');
       } else {
         await api.createPortfolioProject(payload);
-        toast.success('Project added');
+        toast.success('Project added to your portfolio');
       }
       await refresh();
-    } catch {
-      toast.error('Failed to save project');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to save project');
+      throw err;
     }
   }, [refresh]);
 

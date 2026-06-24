@@ -11,9 +11,7 @@ import { Btn } from "../components/Btn";
 import { Bar } from "../components/Bar";
 import { Chip } from "../components/Chip";
 import { Field } from "../components/Field";
-import { extractSalaryNumber } from "../lib/utils";
 import { useCareerData } from "../contexts/CareerDataContext";
-import type { Plan } from "../data/types";
 
 // Role-based multipliers (market premium over base offer)
 const ROLE_MULTIPLIERS: Record<string, number> = {

@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "@/lib/router";
 import { toast } from "sonner";
 import {
   ArrowRight, PlayCircle, LayoutDashboard, Target, Zap, BookOpen, MessageSquare,
-  Brain, Map, BarChart2, FileText, Mic, DollarSign, Sparkles, CheckCircle2,
-  ChevronDown, Menu, X, Quote, Route
+  Brain, Map, BarChart2, FileText, Mic, DollarSign, Sparkles,
+  ChevronDown, Menu, X, Quote
 } from "lucide-react";
 import { cn } from "../lib/utils";
 import { FLAME, CARBON, ALABASTER, DUST } from "../lib/constants";
@@ -16,7 +16,6 @@ import { SectionTitle } from "../components/SectionTitle";
 import { PricingCards } from "../components/PricingCards";
 import { BrandLogo } from "../components/BrandLogo";
 import { TESTIMONIALS, FAQS } from "../data/initial-data";
-import type { Plan } from "../data/types";
 
 function scrollToSection(id: string) {
   const el = document.getElementById(id);

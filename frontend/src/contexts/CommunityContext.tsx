@@ -44,7 +44,7 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
   }, [authed]);
 
   useEffect(() => {
-    void refresh();
+    queueMicrotask(() => { void refresh(); });
   }, [refresh]);
 
   const createThread = useCallback(async (title: string, category: string, body = '') => {

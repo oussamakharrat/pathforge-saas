@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { useNavigate } from "@/lib/router";
-import { Calendar, User, ArrowRight, Clock, Heart, Share2, Tag, ChevronRight, Search, ExternalLink } from "lucide-react";
-import { FLAME, CARBON, ALABASTER, DUST } from "../lib/constants";
+import { ArrowRight, Clock, Search } from "lucide-react";
+import { FLAME, CARBON, ALABASTER } from "../lib/constants";
 import { Card } from "../components/Card";
 import { Btn } from "../components/Btn";
 import { Chip } from "../components/Chip";

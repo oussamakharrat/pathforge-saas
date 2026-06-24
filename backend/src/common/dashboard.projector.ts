@@ -1,6 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { GoalStatus, LearningPlanStatus, ApplicationStatus } from '@prisma/client';
+import {
+  GoalStatus,
+  LearningPlanStatus,
+  ApplicationStatus,
+} from '@prisma/client';
 
 @Injectable()
 export class DashboardProjector {
@@ -16,7 +20,10 @@ export class DashboardProjector {
       unreadNotifications,
     ] = await Promise.all([
       this.prisma.goal.count({
-        where: { userId, status: { in: [GoalStatus.not_started, GoalStatus.in_progress] } },
+        where: {
+          userId,
+          status: { in: [GoalStatus.not_started, GoalStatus.in_progress] },
+        },
       }),
       this.prisma.learningPlan.count({
         where: { userId, status: LearningPlanStatus.active },
@@ -74,12 +81,16 @@ export class DashboardProjector {
       this.prisma.goal.findMany({ where: { userId } }),
       this.prisma.application.findMany({ where: { userId } }),
       this.prisma.resume.findMany({ where: { userId } }),
-      this.prisma.userBadge.findMany({ where: { userId, earnedAt: { not: null } } }),
+      this.prisma.userBadge.findMany({
+        where: { userId, earnedAt: { not: null } },
+      }),
     ]);
 
     const skillsScore =
       skills.length > 0
-        ? Math.round(skills.reduce((s, sk) => s + sk.currentLevel, 0) / skills.length)
+        ? Math.round(
+            skills.reduce((s, sk) => s + sk.currentLevel, 0) / skills.length,
+          )
         : 0;
 
     const goalScore =
@@ -90,13 +101,17 @@ export class DashboardProjector {
     const applicationScore = Math.min(
       100,
       applications.filter((a) =>
-        ['applied', 'screening', 'interview', 'offer', 'accepted'].includes(a.status),
+        ['applied', 'screening', 'interview', 'offer', 'accepted'].includes(
+          a.status,
+        ),
       ).length * 10,
     );
 
     const resumeScore =
       resumes.length > 0
-        ? Math.round(resumes.reduce((s, r) => s + r.atsScore, 0) / resumes.length)
+        ? Math.round(
+            resumes.reduce((s, r) => s + r.atsScore, 0) / resumes.length,
+          )
         : 0;
 
     const badgeBonus = Math.min(20, badges.length * 2);

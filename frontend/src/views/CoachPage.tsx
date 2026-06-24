@@ -1,25 +1,21 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { useSearchParams, useNavigate } from "@/lib/router";
+import { useSearchParams } from "@/lib/router";
 import { toast } from "sonner";
 import {
   Plus, Search, MessageSquare, Brain, BarChart2, ChevronLeft, ChevronRight,
   FileText, Zap, Mic, DollarSign, Map, Target, ArrowRight, Sparkles,
-  X, Send, Upload, ThumbsUp, ThumbsDown, Copy, CheckCircle2
+  X, Send, Upload, ThumbsUp, ThumbsDown, Copy
 } from "lucide-react";
 import { cn } from "../lib/utils";
 import { FLAME, CARBON } from "../lib/constants";
-import { Card } from "../components/Card";
-import { Btn } from "../components/Btn";
-import { Bar } from "../components/Bar";
-import { Chip } from "../components/Chip";
 import { RenderAI } from "../components/RenderAI";
 import { useCareerData } from "../contexts/CareerDataContext";
 import { useCoach } from "../contexts/CoachContext";
 import { useAuth } from "../contexts/AuthContext";
 import { QUICK_PROMPTS } from "../data/initial-data";
-import type { Message, Conversation } from "../data/types";
+import type { Message } from "../data/types";
 
 const WELCOME_ACTIONS = [
   { icon: FileText,  label: "Improve My Resume",      sub: "ATS optimization & rewrites",   prompt: "Fix my resume" },
@@ -31,7 +27,6 @@ const WELCOME_ACTIONS = [
 ];
 
 export default function CoachPage() {
-  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const initialPrompt = searchParams.get("prompt") || "";
 
@@ -66,11 +61,13 @@ export default function CoachPage() {
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
-    if (coachMessages.length) setMessages(coachMessages);
+    queueMicrotask(() => {
+      if (coachMessages.length) setMessages(coachMessages);
+    });
   }, [coachMessages]);
 
   useEffect(() => {
-    setLoading(coachLoading);
+    queueMicrotask(() => setLoading(coachLoading));
   }, [coachLoading]);
 
   useEffect(() => {
@@ -86,15 +83,19 @@ export default function CoachPage() {
 
   useEffect(() => {
     if (initialPrompt) {
-      sendMessage(initialPrompt);
-      window.history.replaceState({}, "", "/app/coach");
+      queueMicrotask(() => {
+        sendMessage(initialPrompt);
+        window.history.replaceState({}, "", "/app/coach");
+      });
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    if (messages.length === 1 && messages[0].id === "m0") {
-      setMessages([makeWelcome()]);
-    }
+    queueMicrotask(() => {
+      if (messages.length === 1 && messages[0].id === "m0") {
+        setMessages([makeWelcome()]);
+      }
+    });
   }, [careerScore, displayName]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const newChat = () => {
@@ -109,6 +110,14 @@ export default function CoachPage() {
   const filteredConvos = convoSearch
     ? convos.filter(c => c.title.toLowerCase().includes(convoSearch.toLowerCase()))
     : convos;
+
+  const avgSkill = skills.length > 0
+    ? Math.round(skills.reduce((s, k) => s + k.pct, 0) / skills.length)
+    : 0;
+  const topGoal = goals.length > 0
+    ? [...goals].sort((a, b) => b.progress - a.progress)[0]
+    : null;
+  const skillGaps = skills.filter(s => s.pct < 50).length;
 
   const hasUserMessages = messages.some(m => m.role === "user");
 
@@ -218,9 +227,10 @@ export default function CoachPage() {
             </div>
           ) : (
             <div className="px-3 md:px-4 lg:px-5 py-4 space-y-3 max-w-3xl mx-auto w-full">
-              {messages.map(m => {
+              {messages.map((m, idx) => {
                 const displayContent = m.content;
                 const likeState = msgLikes[m.id];
+                const isStreaming = loading && idx === messages.length - 1 && m.role === 'ai';
                 return (
                   <div key={m.id} className={cn("flex gap-3.5", m.role === "user" ? "justify-end" : "justify-start")}>
                     {m.role === "ai" && (

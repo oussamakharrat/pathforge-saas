@@ -43,13 +43,17 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    refresh();
+    queueMicrotask(() => { refresh(); });
     const interval = setInterval(refresh, 30000);
     return () => clearInterval(interval);
   }, [refresh]);
 
   const addNotification = useCallback(
-    (_type: NotificationType, _title: string, _message: string, _link?: string) => {
+    (type: NotificationType, title: string, message: string, link?: string) => {
+      void type;
+      void title;
+      void message;
+      void link;
       refresh();
     },
     [refresh],

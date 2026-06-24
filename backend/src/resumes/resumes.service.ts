@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { DashboardProjector } from '../common/dashboard.projector';
 import { assertFound, assertOwner } from '../common/assertions';
@@ -77,7 +77,11 @@ export class ResumesService {
     return resume;
   }
 
-  async addSection(userId: string, resumeId: string, dto: CreateResumeSectionDto) {
+  async addSection(
+    userId: string,
+    resumeId: string,
+    dto: CreateResumeSectionDto,
+  ) {
     await this.findOne(userId, resumeId);
     const maxOrder = await this.prisma.resumeSection.aggregate({
       where: { resumeId },
@@ -102,6 +106,13 @@ export class ResumesService {
     dto: UpdateResumeSectionDto,
   ) {
     await this.findOne(userId, resumeId);
+    const section = assertFound(
+      await this.prisma.resumeSection.findUnique({ where: { id: sectionId } }),
+      'Resume section',
+    );
+    if (section.resumeId !== resumeId) {
+      throw new BadRequestException('Section does not belong to this resume');
+    }
     return this.prisma.resumeSection.update({
       where: { id: sectionId },
       data: dto,
@@ -111,6 +122,7 @@ export class ResumesService {
   async remove(userId: string, id: string) {
     await this.findOne(userId, id);
     await this.prisma.resume.delete({ where: { id } });
+    await this.dashboard.refreshCareerMetrics(userId);
     return { deleted: true };
   }
 }

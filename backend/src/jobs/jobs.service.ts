@@ -1,5 +1,10 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
-import { ApplicationStatus, InterviewType, Prisma } from '@prisma/client';
+import {
+  ApplicationStatus,
+  InterviewStatus,
+  InterviewType,
+  Prisma,
+} from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { DashboardProjector } from '../common/dashboard.projector';
 import { NotificationsHelper } from '../common/notifications.helper';
@@ -37,7 +42,10 @@ export class JobsService {
     const job = assertFound(
       await this.prisma.jobPosting.findUnique({
         where: { id },
-        include: { skills: { include: { skillCatalog: true } }, applications: true },
+        include: {
+          skills: { include: { skillCatalog: true } },
+          applications: true,
+        },
       }),
       'Job posting',
     );
@@ -59,7 +67,11 @@ export class JobsService {
         companyLogo: dto.companyLogo ?? '',
         matchScore: dto.matchScore ?? 0,
         skills: dto.skillCatalogIds?.length
-          ? { create: dto.skillCatalogIds.map((skillCatalogId) => ({ skillCatalogId })) }
+          ? {
+              create: dto.skillCatalogIds.map((skillCatalogId) => ({
+                skillCatalogId,
+              })),
+            }
           : undefined,
       },
       include: { skills: { include: { skillCatalog: true } } },
@@ -73,7 +85,10 @@ export class JobsService {
       await this.prisma.jobSkill.deleteMany({ where: { jobId: id } });
       if (dto.skillCatalogIds.length) {
         await this.prisma.jobSkill.createMany({
-          data: dto.skillCatalogIds.map((skillCatalogId) => ({ jobId: id, skillCatalogId })),
+          data: dto.skillCatalogIds.map((skillCatalogId) => ({
+            jobId: id,
+            skillCatalogId,
+          })),
         });
       }
     }
@@ -117,7 +132,11 @@ export class JobsService {
     const app = assertFound(
       await this.prisma.application.findUnique({
         where: { id },
-        include: { job: true, interviews: true, offers: { include: { negotiation: true } } },
+        include: {
+          job: true,
+          interviews: true,
+          offers: { include: { negotiation: true } },
+        },
       }),
       'Application',
     );
@@ -132,13 +151,21 @@ export class JobsService {
     );
     assertOwner(job.userId, userId);
 
+    if (dto.goalId) {
+      const goal = assertFound(
+        await this.prisma.goal.findUnique({ where: { id: dto.goalId } }),
+        'Goal',
+      );
+      assertOwner(goal.userId, userId);
+    }
+
     const app = await this.prisma.application.create({
       data: {
         userId,
         jobId: dto.jobId,
         goalId: dto.goalId,
         notes: dto.notes ?? '',
-        status: (dto.status as ApplicationStatus) ?? ApplicationStatus.wishlist,
+        status: dto.status ?? ApplicationStatus.wishlist,
       },
       include: { job: true },
     });
@@ -156,16 +183,43 @@ export class JobsService {
     return app;
   }
 
-  async updateApplicationStatus(userId: string, id: string, dto: UpdateApplicationStatusDto) {
+  async updateApplicationStatus(
+    userId: string,
+    id: string,
+    dto: UpdateApplicationStatusDto,
+  ) {
     const app = await this.getApplication(userId, id);
-    const newStatus = dto.status as ApplicationStatus;
+    const newStatus = dto.status;
 
-    validateStatusTransition(
-      app.status,
-      newStatus,
-      app.interviews.length > 0,
-      app.offers.length > 0,
-    );
+    let hasInterviews = app.interviews.length > 0;
+    let hasOffers = app.offers.length > 0;
+
+    if (newStatus === ApplicationStatus.interview && !hasInterviews) {
+      await this.prisma.interview.create({
+        data: {
+          applicationId: id,
+          type: InterviewType.behavioral,
+          date: new Date(),
+          company: app.job.company,
+          role: app.job.title,
+        },
+      });
+      hasInterviews = true;
+    }
+
+    if (newStatus === ApplicationStatus.offer && !hasOffers) {
+      await this.prisma.offer.create({
+        data: {
+          applicationId: id,
+          company: app.job.company,
+          role: app.job.title,
+          baseSalary: { amount: 0, currency: 'USD' },
+        },
+      });
+      hasOffers = true;
+    }
+
+    validateStatusTransition(app.status, newStatus, hasInterviews, hasOffers);
 
     const updated = await this.prisma.application.update({
       where: { id },
@@ -187,13 +241,17 @@ export class JobsService {
     return updated;
   }
 
-  async addInterview(userId: string, applicationId: string, dto: CreateInterviewDto) {
+  async addInterview(
+    userId: string,
+    applicationId: string,
+    dto: CreateInterviewDto,
+  ) {
     await this.getApplication(userId, applicationId);
 
     const interview = await this.prisma.interview.create({
       data: {
         applicationId,
-        type: dto.type as InterviewType,
+        type: dto.type,
         date: new Date(dto.date),
         company: dto.company ?? '',
         role: dto.role ?? '',
@@ -214,23 +272,32 @@ export class JobsService {
     return interview;
   }
 
-  async updateInterview(userId: string, applicationId: string, interviewId: string, dto: UpdateInterviewDto) {
+  async updateInterview(
+    userId: string,
+    applicationId: string,
+    interviewId: string,
+    dto: UpdateInterviewDto,
+  ) {
     await this.getApplication(userId, applicationId);
     const interview = assertFound(
       await this.prisma.interview.findUnique({ where: { id: interviewId } }),
       'Interview',
     );
     if (interview.applicationId !== applicationId) {
-      throw new BadRequestException('Interview does not belong to this application');
+      throw new BadRequestException(
+        'Interview does not belong to this application',
+      );
     }
 
     return this.prisma.interview.update({
       where: { id: interviewId },
       data: {
-        status: dto.status as any,
+        status: dto.status as InterviewStatus,
         score: dto.score,
         feedback: dto.feedback,
-        answers: (dto.answers ?? undefined) as Prisma.InputJsonValue | undefined,
+        answers: (dto.answers ?? undefined) as
+          | Prisma.InputJsonValue
+          | undefined,
       },
     });
   }
@@ -247,7 +314,9 @@ export class JobsService {
         equity: dto.equity ?? '',
         bonus: dto.bonus ?? '',
         benefits: dto.benefits ?? [],
-        decisionDeadline: dto.decisionDeadline ? new Date(dto.decisionDeadline) : null,
+        decisionDeadline: dto.decisionDeadline
+          ? new Date(dto.decisionDeadline)
+          : null,
       },
     });
 

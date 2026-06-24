@@ -110,7 +110,6 @@ export function buildRelationshipGraph(
   learningSteps.forEach(step => {
     const skillName = getSkillForStep(step.id);
     if (skillName) {
-      const skill = skills.find(s => s.name === skillName);
       links.push({
         from: step.title,
         fromType: "learning",
@@ -184,7 +183,6 @@ export function generateRecommendations(
   learningSteps: LearningStep[],
   outcomes: OutcomeMetrics,
   quizResults: QuizResult[],
-  purchasedServices: string[],
 ): Recommendation[] {
   const recs: Recommendation[] = [];
 
@@ -506,7 +504,6 @@ export function generateTimeline(
   purchasedServices: string[],
 ): TimelineEvent[] {
   const events: TimelineEvent[] = [];
-  const now = new Date();
 
   // Learning milestones (completed steps)
   learningSteps
@@ -667,7 +664,6 @@ export interface JobMatchInput {
 export function calculateJobMatchDetail(
   job: JobMatchInput,
   skills: Skill[],
-  allJobs: any[],
 ): JobMatchDetail {
   const relevantSkills = Object.entries(getSkillJobMap())
     .filter(([, companies]) => companies.includes(job.company))

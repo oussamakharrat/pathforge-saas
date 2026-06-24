@@ -10,7 +10,9 @@ export class ReferenceService {
   }
 
   listAchievements() {
-    return this.prisma.achievementDefinition.findMany({ orderBy: { name: 'asc' } });
+    return this.prisma.achievementDefinition.findMany({
+      orderBy: { name: 'asc' },
+    });
   }
 
   listBadges() {

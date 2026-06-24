@@ -20,6 +20,9 @@
     "forceConsistentCasingInFileNames": true,
     "noImplicitAny": false,
     "strictBindCallApply": false,
-    "noFallthroughCasesInSwitch": false
-  }
+    "noFallthroughCasesInSwitch": false,
+    "composite": true
+  },
+  "include": ["src/**/*", "scripts/**/*", "prisma.config.ts"],
+  "exclude": ["node_modules", "dist", "test", "**/*spec.ts"]
 }

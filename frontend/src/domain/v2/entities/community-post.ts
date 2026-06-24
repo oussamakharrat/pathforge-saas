@@ -18,8 +18,6 @@
  *  - isArchived for soft deletion / moderation
  */
 
-import type { ReactionType } from "../value-objects";
-
 export interface CommunityPost {
   /** Primary key */
   id: string;

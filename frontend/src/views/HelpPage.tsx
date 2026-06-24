@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { useNavigate } from "@/lib/router";
-import { HelpCircle, Search, ChevronDown, BookOpen, MessageSquare, FileText, LifeBuoy, ExternalLink, ArrowRight, Sparkles, Users, Award, Mail } from "lucide-react";
-import { FLAME, CARBON, ALABASTER, DUST } from "../lib/constants";
+import { Search, ChevronDown, BookOpen, MessageSquare, FileText, LifeBuoy, ArrowRight, Award, Mail } from "lucide-react";
+import { FLAME, CARBON, ALABASTER } from "../lib/constants";
 import { Card } from "../components/Card";
 import { Btn } from "../components/Btn";
 import { BrandLogo } from "../components/BrandLogo";
@@ -44,8 +44,6 @@ export default function HelpPage() {
     const searchMatch = !search || a.title.toLowerCase().includes(search.toLowerCase()) || a.excerpt.toLowerCase().includes(search.toLowerCase());
     return catMatch && searchMatch;
   });
-
-  const popular = ARTICLES.filter(a => a.popular);
 
   const faqs = [
     { q: "Is my data secure?", a: "Yes. All data is encrypted at rest and in transit. You own your data and can export or delete it anytime from Settings." },

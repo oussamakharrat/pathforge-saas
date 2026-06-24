@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { Users, MessageCircle, Heart, Share2, MessageSquare, Plus, Search, TrendingUp, Award, Flame, ChevronRight, Clock, User, Reply, Flag } from "lucide-react";
-import { FLAME, CARBON, ALABASTER, DUST } from "../lib/constants";
+import { Users, MessageCircle, Heart, MessageSquare, Plus, Search, TrendingUp, Award, Flame, ChevronRight, Clock, User, Reply } from "lucide-react";
+import { FLAME, CARBON, ALABASTER } from "../lib/constants";
 import { Card } from "../components/Card";
 import { Btn } from "../components/Btn";
 import { Chip } from "../components/Chip";

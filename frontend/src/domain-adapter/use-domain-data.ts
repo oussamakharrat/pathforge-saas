@@ -13,8 +13,7 @@
  */
 
 import { useMemo } from "react";
-import type { User, Skill, Goal, LearningPlan, JobApplication, Interview, Negotiation } from "../../domain/entities";
-import { createUser } from "../../domain/entities/user";
+import type { User } from "../../domain/entities";
 import {
   computeCareerMetrics,
   buildRelationshipGraph,

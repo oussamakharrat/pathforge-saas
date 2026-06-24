@@ -97,7 +97,7 @@ export const MISSIONS: Mission[] = [
     icon: "📈",
     rarity: "silver",
     category: "skills",
-    requirement: (d) => false, // Tracked separately via delta
+    requirement: () => false, // Tracked separately via delta
     progress: () => ({ current: 0, target: 1 }),
   },
 
@@ -193,7 +193,7 @@ export const MISSIONS: Mission[] = [
     icon: "👋",
     rarity: "bronze",
     category: "social",
-    requirement: (d) => false,
+    requirement: () => false,
     progress: () => ({ current: 0, target: 1 }),
   },
 
@@ -235,7 +235,7 @@ export const MISSIONS: Mission[] = [
     icon: "🏆",
     rarity: "gold",
     category: "growth",
-    requirement: (d) => false, // Computed externally from careerScore
+    requirement: () => false, // Computed externally from careerScore
     progress: () => ({ current: 0, target: 50 }),
   },
 ];

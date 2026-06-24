@@ -1,7 +1,11 @@
 import { Controller, Get, Post, Body, Param } from '@nestjs/common';
 import { CommunityService } from './community.service';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import { CreatePostDto, CreateCommentDto, CreateReactionDto } from './dto/community.dto';
+import {
+  CreatePostDto,
+  CreateCommentDto,
+  CreateReactionDto,
+} from './dto/community.dto';
 
 @Controller('community')
 export class CommunityController {

@@ -1,4 +1,3 @@
-import { cn } from "../lib/utils";
 import { FLAME, CARBON, DUST, ALABASTER } from "../lib/constants";
 
 export function Chip({ children, variant = "default" }: { children: React.ReactNode; variant?: "default" | "flame" | "green" | "amber" | "ghost" }) {

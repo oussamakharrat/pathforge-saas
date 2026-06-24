@@ -1,4 +1,10 @@
-import { IsString, IsOptional, IsArray, IsDateString, IsBoolean } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsArray,
+  IsDateString,
+  IsBoolean,
+} from 'class-validator';
 
 export class CreateGoalDto {
   @IsString() title: string;

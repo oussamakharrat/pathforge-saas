@@ -78,6 +78,12 @@ interface CareerDataContextType {
 
 const CareerDataContext = createContext<CareerDataContextType | null>(null);
 
+function normalizeTargetDate(deadline: string): string | undefined {
+  if (!deadline) return undefined;
+  if (/^\d{4}-\d{2}$/.test(deadline)) return `${deadline}-01`;
+  return deadline;
+}
+
 export function CareerDataProvider({ children }: { children: ReactNode }) {
   const [goals, setGoals] = useState<Goal[]>([]);
   const [skills, setSkills] = useState<Skill[]>([]);
@@ -97,7 +103,7 @@ export function CareerDataProvider({ children }: { children: ReactNode }) {
 
   const { addNotification } = useNotifications();
   const { authed } = useAuth();
-  const { referenceSkills } = useGamification();
+  const { referenceSkills, refresh: refreshReferenceSkills } = useGamification();
 
   const refresh = useCallback(async () => {
     if (!authed) return;
@@ -132,22 +138,24 @@ export function CareerDataProvider({ children }: { children: ReactNode }) {
   }, [authed]);
 
   useEffect(() => {
-    if (authed) void refresh();
-    else {
-      clearIdRegistry();
-      setGoals([]);
-      setSkills([]);
-      setLearningSteps([]);
-      setOutcomes({
-        totalApplications: 0,
-        totalInterviews: 0,
-        totalOffers: 0,
-        interviewsCompleted: 0,
-        negotiationsCompleted: 0,
-      });
-      setQuizResults([]);
-      setPurchasedServices([]);
-    }
+    queueMicrotask(() => {
+      if (authed) void refresh();
+      else {
+        clearIdRegistry();
+        setGoals([]);
+        setSkills([]);
+        setLearningSteps([]);
+        setOutcomes({
+          totalApplications: 0,
+          totalInterviews: 0,
+          totalOffers: 0,
+          interviewsCompleted: 0,
+          negotiationsCompleted: 0,
+        });
+        setQuizResults([]);
+        setPurchasedServices([]);
+      }
+    });
   }, [authed, refresh]);
 
   const toggleStep = useCallback((stepId: number) => {
@@ -159,7 +167,7 @@ export function CareerDataProvider({ children }: { children: ReactNode }) {
   }, [learningSteps, refresh]);
 
   const addGoal = useCallback((title: string, deadline: string) => {
-    void api.createGoal({ title, targetDate: deadline })
+    void api.createGoal({ title, targetDate: normalizeTargetDate(deadline) })
       .then(() => {
         toast.success('Goal created!');
         addNotification('goal_created', `New Goal: ${title}`, `Goal "${title}" created.`, '/app/goals');
@@ -173,7 +181,7 @@ export function CareerDataProvider({ children }: { children: ReactNode }) {
     if (!apiId) return;
     void api.updateGoal(apiId, {
       title: updates.title,
-      targetDate: updates.deadline,
+      targetDate: updates.deadline ? normalizeTargetDate(updates.deadline) : undefined,
     })
       .then(() => {
         toast.success('Goal updated!');
@@ -197,21 +205,20 @@ export function CareerDataProvider({ children }: { children: ReactNode }) {
     const catalog = referenceSkills.find(
       (s) => String(s.name).toLowerCase() === name.toLowerCase(),
     );
-    if (!catalog) {
-      toast.error(`"${name}" is not in the skill catalog.`);
-      return;
-    }
     void api.upsertSkill({
-      skillCatalogId: catalog.id,
+      skillCatalogId: catalog ? String(catalog.id) : undefined,
+      name: catalog ? undefined : name,
+      category: cat,
       currentLevel: pct,
       targetLevel: Math.min(100, pct + 20),
     })
       .then(() => {
         toast.success(`"${name}" added to your skills!`);
+        void refreshReferenceSkills();
         return refresh();
       })
       .catch(() => toast.error('Failed to add skill'));
-  }, [referenceSkills, refresh]);
+  }, [referenceSkills, refresh, refreshReferenceSkills]);
 
   const updateSkill = useCallback((name: string, updates: Partial<Pick<Skill, 'level' | 'pct' | 'cat'>>) => {
     const skill = skills.find((s) => s.name === name) as SkillMeta | undefined;
@@ -227,11 +234,13 @@ export function CareerDataProvider({ children }: { children: ReactNode }) {
       .catch(() => toast.error('Failed to update skill'));
   }, [skills, refresh]);
 
-  const deleteSkill = useCallback((_name: string) => {
+  const deleteSkill = useCallback((name: string) => {
+    void name;
     toast.info('Remove skill is not supported by the API yet.');
   }, []);
 
-  const deleteLearningStep = useCallback((_stepId: number) => {
+  const deleteLearningStep = useCallback((stepId: number) => {
+    void stepId;
     toast.info('Remove learning step is not supported by the API yet.');
   }, []);
 

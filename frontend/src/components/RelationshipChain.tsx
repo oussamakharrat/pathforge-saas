@@ -7,14 +7,13 @@
  */
 
 import { useMemo } from "react";
-import { useNavigate } from "@/lib/router";
-import { ArrowDown, Link as LinkIcon, Zap, TrendingUp, Briefcase, Target, BookOpen, Mic } from "lucide-react";
+import { ArrowDown, Link as LinkIcon, Zap, TrendingUp, Briefcase, Target, BookOpen, Mic, type LucideIcon } from "lucide-react";
 import { FLAME, CARBON } from "../lib/constants";
 import { Card } from "./Card";
 import { useCareerData } from "../contexts/CareerDataContext";
 import { buildRelationshipGraph } from "../services/career-engine";
 
-const TYPE_ICONS: Record<string, any> = {
+const TYPE_ICONS: Record<string, LucideIcon> = {
   skill: Zap,
   goal: Target,
   learning: BookOpen,

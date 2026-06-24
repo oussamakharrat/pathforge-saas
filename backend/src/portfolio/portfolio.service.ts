@@ -3,7 +3,10 @@ import { PortfolioStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { assertFound, assertOwner } from '../common/assertions';
 import { MAX_FEATURED_PROJECTS } from '../domain/types';
-import { CreatePortfolioProjectDto, UpdatePortfolioProjectDto } from './dto/portfolio.dto';
+import {
+  CreatePortfolioProjectDto,
+  UpdatePortfolioProjectDto,
+} from './dto/portfolio.dto';
 
 @Injectable()
 export class PortfolioService {
@@ -29,13 +32,23 @@ export class PortfolioService {
     return project;
   }
 
-  private async enforceFeaturedLimit(userId: string, featured: boolean, excludeId?: string) {
+  private async enforceFeaturedLimit(
+    userId: string,
+    featured: boolean,
+    excludeId?: string,
+  ) {
     if (!featured) return;
     const count = await this.prisma.portfolioProject.count({
-      where: { userId, featured: true, ...(excludeId ? { id: { not: excludeId } } : {}) },
+      where: {
+        userId,
+        featured: true,
+        ...(excludeId ? { id: { not: excludeId } } : {}),
+      },
     });
     if (count >= MAX_FEATURED_PROJECTS) {
-      throw new BadRequestException(`Maximum ${MAX_FEATURED_PROJECTS} featured projects allowed`);
+      throw new BadRequestException(
+        `Maximum ${MAX_FEATURED_PROJECTS} featured projects allowed`,
+      );
     }
   }
 
@@ -53,8 +66,14 @@ export class PortfolioService {
         imageUrl: dto.imageUrl ?? '',
         status: (dto.status as PortfolioStatus) ?? PortfolioStatus.not_started,
         featured: dto.featured ?? false,
+        completedAt:
+          dto.status === PortfolioStatus.completed ? new Date() : undefined,
         skills: dto.skillCatalogIds?.length
-          ? { create: dto.skillCatalogIds.map((skillCatalogId) => ({ skillCatalogId })) }
+          ? {
+              create: dto.skillCatalogIds.map((skillCatalogId) => ({
+                skillCatalogId,
+              })),
+            }
           : undefined,
       },
       include: { skills: { include: { skillCatalog: true } } },
@@ -66,10 +85,15 @@ export class PortfolioService {
     if (dto.featured) await this.enforceFeaturedLimit(userId, true, id);
 
     if (dto.skillCatalogIds) {
-      await this.prisma.portfolioProjectSkill.deleteMany({ where: { projectId: id } });
+      await this.prisma.portfolioProjectSkill.deleteMany({
+        where: { projectId: id },
+      });
       if (dto.skillCatalogIds.length) {
         await this.prisma.portfolioProjectSkill.createMany({
-          data: dto.skillCatalogIds.map((skillCatalogId) => ({ projectId: id, skillCatalogId })),
+          data: dto.skillCatalogIds.map((skillCatalogId) => ({
+            projectId: id,
+            skillCatalogId,
+          })),
         });
       }
     }
@@ -83,7 +107,7 @@ export class PortfolioService {
         repoUrl: dto.repoUrl,
         demoUrl: dto.demoUrl,
         imageUrl: dto.imageUrl,
-        status: dto.status as PortfolioStatus | undefined,
+        status: dto.status,
         featured: dto.featured,
         completedAt: dto.status === 'completed' ? new Date() : undefined,
       },

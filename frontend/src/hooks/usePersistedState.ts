@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef, type Dispatch, type SetStateAction } from "react";
+import { useState, useEffect, useRef, type Dispatch, type SetStateAction } from "react";
 
 /**
  * A drop-in replacement for useState that persists the value in localStorage.

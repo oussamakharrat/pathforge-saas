@@ -18,8 +18,6 @@
  *    5. Update conversation metadata
  */
 
-import type { AIMessageRole } from "../value-objects";
-
 export interface AIConversation {
   /** Primary key */
   id: string;

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useNavigate } from "@/lib/router";
 import { toast } from "sonner";
-import { FileText, Upload, RefreshCw, TrendingUp, Sparkles, Brain, CheckCircle2, AlertCircle } from "lucide-react";
+import { FileText, Upload, TrendingUp, Sparkles, Brain, CheckCircle2, AlertCircle } from "lucide-react";
 import { FLAME, CARBON, ALABASTER, DUST } from "../lib/constants";
 import { Card } from "../components/Card";
 import { Btn } from "../components/Btn";
@@ -16,11 +16,10 @@ import { useResume } from "../contexts/ResumeContext";
 export default function ResumePage() {
   const navigate = useNavigate();
   const { purchasedServices } = useCareerData();
-  const { resumes, loading, createResume, updateResume } = useResume();
+  const { resumes, loading, createResume } = useResume();
   const hasResumeReview = purchasedServices.includes("Resume Review");
   const hasFullRewrite = purchasedServices.includes("CV Full Rewrite");
   const [drag, setDrag] = useState(false);
-  const [analyzing, setAnalyzing] = useState(false);
   const active = resumes[0];
   const [activeVersion, setActiveVersion] = useState(active?.title ?? "Resume");
   const versions = resumes.map((r) => ({
@@ -30,6 +29,7 @@ export default function ResumePage() {
     score: r.atsScore,
     delta: r.atsScore > 0 ? `+${Math.max(0, r.atsScore - 62)}` : "—",
   }));
+  const activeVersionScore = versions.find((v) => v.v === activeVersion)?.score ?? 0;
 
   return (
     <div>
@@ -73,7 +73,7 @@ export default function ResumePage() {
           <Card className="p-4" hover={false} style={{ borderColor: "rgba(241,80,37,0.15)" }}>
             <div className="flex items-center gap-2 mb-3"><TrendingUp className="w-4 h-4" style={{ color: FLAME }} /><span className="text-[13px] font-black" style={{ color: CARBON }}>Resume Impact</span></div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              {[{ label: "Career Score", value: `+${versions.find(v => v.v === activeVersion)?.score! - 62}pts`, sub: `From score 62 → ${versions.find(v => v.v === activeVersion)?.score}` }, { label: "Job Match", value: "94%", sub: "Vercel match boosted" }, { label: "ATS Pass Rate", value: "68%", sub: "Needs DevOps keywords" }].map(m => (
+              {[{ label: "Career Score", value: `+${activeVersionScore - 62}pts`, sub: `From score 62 → ${activeVersionScore}` }, { label: "Job Match", value: "94%", sub: "Vercel match boosted" }, { label: "ATS Pass Rate", value: "68%", sub: "Needs DevOps keywords" }].map(m => (
                 <div key={m.label} className="text-center p-3 rounded-xl" style={{ backgroundColor: ALABASTER }}>
                   <p className="text-[13px] font-black" style={{ color: FLAME }}>{m.value}</p>
                   <p className="text-[11px] font-bold" style={{ color: CARBON }}>{m.label}</p>
@@ -89,8 +89,8 @@ export default function ResumePage() {
             <div className="flex items-center gap-2 mb-4"><Sparkles className="w-4 h-4" style={{ color: FLAME }} /><span className="text-[13px] font-black">AI Resume Score</span></div>
             <div className="flex justify-center mb-4">
               <div className="relative w-24 h-24">
-                <svg className="w-24 h-24 -rotate-90" viewBox="0 0 96 96"><circle cx="48" cy="48" r="38" fill="none" strokeWidth="7" style={{ stroke: ALABASTER }} /><circle cx="48" cy="48" r="38" fill="none" strokeWidth="7" strokeLinecap="round" style={{ stroke: FLAME }} strokeDasharray={`${versions.find(v => v.v === activeVersion)?.score! * 2.39} 239`} /></svg>
-                <div className="absolute inset-0 flex flex-col items-center justify-center"><span className="text-2xl font-black" style={{ color: CARBON }}>{versions.find(v => v.v === activeVersion)?.score}</span><span className="text-[10px] text-muted-foreground">/100</span></div>
+                <svg className="w-24 h-24 -rotate-90" viewBox="0 0 96 96"><circle cx="48" cy="48" r="38" fill="none" strokeWidth="7" style={{ stroke: ALABASTER }} /><circle cx="48" cy="48" r="38" fill="none" strokeWidth="7" strokeLinecap="round" style={{ stroke: FLAME }} strokeDasharray={`${activeVersionScore * 2.39} 239`} /></svg>
+                <div className="absolute inset-0 flex flex-col items-center justify-center"><span className="text-2xl font-black" style={{ color: CARBON }}>{activeVersionScore}</span><span className="text-[10px] text-muted-foreground">/100</span></div>
               </div>
             </div>
             {[{ l: "Impact", v: 85 }, { l: "Clarity", v: 80 }, { l: "Keywords", v: 72 }, { l: "ATS", v: 68 }].map(m => (

@@ -86,6 +86,20 @@ export function apiLearningItemToLegacy(
   };
 }
 
+function formatSalaryRange(value: unknown): string {
+  if (value == null) return 'TBD';
+  if (typeof value === 'string') return value || 'TBD';
+  if (typeof value === 'object') {
+    const obj = value as Record<string, unknown>;
+    if (typeof obj.display === 'string') return obj.display;
+    if (typeof obj.min === 'number' && typeof obj.max === 'number') {
+      return `$${obj.min}–${obj.max}`;
+    }
+    if (typeof obj.amount === 'number') return `$${obj.amount}`;
+  }
+  return 'TBD';
+}
+
 export function apiApplicationsToKanban(
   apps: Record<string, unknown>[],
 ): Record<KanbanCol, KanbanCard[]> {
@@ -97,7 +111,7 @@ export function apiApplicationsToKanban(
       id: String(app.id),
       company,
       role: String(job.title ?? 'Role'),
-      salary: String(job.salaryRange ?? 'TBD'),
+      salary: formatSalaryRange(job.salaryRange),
       date: String(app.createdAt ?? new Date().toISOString()).split('T')[0],
       match: Number(job.matchScore ?? 50),
       notes: String(app.notes ?? ''),
@@ -220,11 +234,11 @@ export function apiBadgeDefToLegacy(d: Record<string, unknown>, earned?: Record<
 
 export function apiProgressToOutcomes(p: Record<string, unknown>): OutcomeMetrics {
   return {
-    totalApplications: Number(p.ongoingApplications ?? 0),
-    totalInterviews: Number(p.upcomingInterviews ?? 0),
-    totalOffers: Number(p.pendingOffers ?? 0),
-    interviewsCompleted: Number(p.upcomingInterviews ?? 0),
-    negotiationsCompleted: Number(p.pendingOffers ?? 0),
+    totalApplications: Number(p.totalApplications ?? p.ongoingApplications ?? 0),
+    totalInterviews: Number(p.totalInterviews ?? p.upcomingInterviews ?? 0),
+    totalOffers: Number(p.totalOffers ?? p.pendingOffers ?? 0),
+    interviewsCompleted: Number(p.interviewsCompleted ?? 0),
+    negotiationsCompleted: Number(p.negotiationsCompleted ?? 0),
   };
 }
 

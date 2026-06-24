@@ -4,7 +4,10 @@ import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsHelper } from '../common/notifications.helper';
 import { DashboardProjector } from '../common/dashboard.projector';
 import { assertFound, assertOwner } from '../common/assertions';
-import { CreateNegotiationDto, UpdateNegotiationDto } from './dto/negotiations.dto';
+import {
+  CreateNegotiationDto,
+  UpdateNegotiationDto,
+} from './dto/negotiations.dto';
 
 @Injectable()
 export class NegotiationsService {
@@ -17,7 +20,9 @@ export class NegotiationsService {
   async findAll(userId: string) {
     return this.prisma.negotiation.findMany({
       where: { userId },
-      include: { offer: { include: { application: { include: { job: true } } } } },
+      include: {
+        offer: { include: { application: { include: { job: true } } } },
+      },
       orderBy: { createdAt: 'desc' },
     });
   }
@@ -26,7 +31,9 @@ export class NegotiationsService {
     const neg = assertFound(
       await this.prisma.negotiation.findUnique({
         where: { id },
-        include: { offer: { include: { application: { include: { job: true } } } } },
+        include: {
+          offer: { include: { application: { include: { job: true } } } },
+        },
       }),
       'Negotiation',
     );
@@ -45,7 +52,9 @@ export class NegotiationsService {
     assertOwner(offer.application.userId, userId);
 
     if (offer.negotiation) {
-      throw new BadRequestException('Negotiation already exists for this offer');
+      throw new BadRequestException(
+        'Negotiation already exists for this offer',
+      );
     }
 
     if (dto.targetSalary.amount < dto.offeredSalary.amount) {
@@ -79,7 +88,7 @@ export class NegotiationsService {
   }
 
   async update(userId: string, id: string, dto: UpdateNegotiationDto) {
-    const existing = await this.findOne(userId, id);
+    await this.findOne(userId, id);
 
     const data: Record<string, unknown> = {
       strategy: dto.strategy,
@@ -87,7 +96,7 @@ export class NegotiationsService {
     };
 
     if (dto.status) {
-      data.status = dto.status as NegotiationStatus;
+      data.status = dto.status;
       if (dto.status === 'accepted') {
         if (!dto.finalSalary) {
           throw new BadRequestException('finalSalary required when accepting');

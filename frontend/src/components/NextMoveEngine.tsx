@@ -8,10 +8,9 @@
 
 import { useMemo } from "react";
 import { useNavigate } from "@/lib/router";
-import { Compass, ArrowRight, Target, Sparkles, Briefcase, BookOpen, Zap } from "lucide-react";
+import { Compass, ArrowRight, Target, Sparkles } from "lucide-react";
 import { FLAME, CARBON } from "../lib/constants";
 import { Card } from "./Card";
-import { Btn } from "./Btn";
 import { useCareerData } from "../contexts/CareerDataContext";
 import { useAuth } from "../contexts/AuthContext";
 import { useUpgrade } from "../contexts/UpgradeContext";

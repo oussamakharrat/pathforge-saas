@@ -8,9 +8,8 @@
 
 import { useMemo } from "react";
 import { useNavigate } from "@/lib/router";
-import { Sparkles, Brain, Target, TrendingUp, ArrowRight, Lightbulb, ChevronRight } from "lucide-react";
+import { Sparkles, Brain, Target, TrendingUp, ArrowRight, Lightbulb, ChevronRight, type LucideIcon } from "lucide-react";
 import { FLAME, CARBON } from "../lib/constants";
-import { Card } from "./Card";
 import { Btn } from "./Btn";
 import { useCareerData } from "../contexts/CareerDataContext";
 import { useAuth } from "../contexts/AuthContext";
@@ -21,7 +20,7 @@ export default function AIRecommendation() {
   const navigate = useNavigate();
   const { canAccess } = useAuth();
   const { requestUpgrade } = useUpgrade();
-  const { skills, goals, learningSteps, outcomes, quizResults, purchasedServices } = useCareerData();
+  const { skills, goals, learningSteps, outcomes, quizResults } = useCareerData();
 
   const safeNavigate = (path: string, pageId: string, label: string) => {
     if (!canAccess(pageId)) {
@@ -32,14 +31,14 @@ export default function AIRecommendation() {
   };
 
   const recommendations = useMemo(
-    () => generateRecommendations(skills, goals, learningSteps, outcomes, quizResults, purchasedServices),
-    [skills, goals, learningSteps, outcomes, quizResults, purchasedServices],
+    () => generateRecommendations(skills, goals, learningSteps, outcomes, quizResults),
+    [skills, goals, learningSteps, outcomes, quizResults],
   );
 
   const topRec = recommendations[0];
   if (!topRec) return null;
 
-  const typeConfig: Record<string, { label: string; icon: any; color: string; bg: string }> = {
+  const typeConfig: Record<string, { label: string; icon: LucideIcon; color: string; bg: string }> = {
     learning: { label: "Learning", icon: Brain, color: "#3B82F6", bg: "rgba(59,130,246,0.1)" },
     skill: { label: "Skill Gap", icon: Target, color: "#8B5CF6", bg: "rgba(139,92,246,0.1)" },
     resume: { label: "Resume", icon: Sparkles, color: "#F59E0B", bg: "rgba(245,158,11,0.1)" },
@@ -64,7 +63,7 @@ export default function AIRecommendation() {
               <Sparkles className="w-3 h-3" style={{ color: FLAME }} />
             </div>
             <span className="text-[10px] font-black uppercase tracking-wider" style={{ color: CARBON }}>
-              Today's AI Recommendation
+              Today&apos;s AI Recommendation
             </span>
           </div>
           <span className="text-[8px] font-bold px-1.5 py-0.5 rounded-full" style={{ backgroundColor: cfg.bg, color: cfg.color }}>

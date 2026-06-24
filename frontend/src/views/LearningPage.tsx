@@ -2,7 +2,7 @@
 
 import { useNavigate, useSearchParams } from "@/lib/router";
 import { toast } from "sonner";
-import { RefreshCw, Check, Sparkles, Cpu, Trash2, ArrowLeft, BookOpen } from "lucide-react";
+import { RefreshCw, Check, Sparkles, Cpu, Trash2, BookOpen } from "lucide-react";
 import { cn } from "../lib/utils";
 import { FLAME, CARBON, DUST } from "../lib/constants";
 import { Card } from "../components/Card";

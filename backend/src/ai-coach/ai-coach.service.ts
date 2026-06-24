@@ -37,7 +37,11 @@ export class AiCoachService {
     });
   }
 
-  async sendMessage(userId: string, conversationId: string, dto: SendMessageDto) {
+  async sendMessage(
+    userId: string,
+    conversationId: string,
+    dto: SendMessageDto,
+  ) {
     const conv = await this.getConversation(userId, conversationId);
     const order = conv.messages.length;
 
@@ -50,7 +54,10 @@ export class AiCoachService {
       },
     });
 
-    const assistantContent = this.generateStubResponse(dto.content, conv.context);
+    const assistantContent = this.generateStubResponse(
+      dto.content,
+      conv.context,
+    );
     const assistantMessage = await this.prisma.aIMessage.create({
       data: {
         conversationId,
@@ -66,7 +73,10 @@ export class AiCoachService {
       data: {
         messageCount: order + 2,
         updatedAt: new Date(),
-        title: conv.title === 'New conversation' ? dto.content.slice(0, 60) : conv.title,
+        title:
+          conv.title === 'New conversation'
+            ? dto.content.slice(0, 60)
+            : conv.title,
       },
     });
 

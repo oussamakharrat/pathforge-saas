@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useNavigate } from "@/lib/router";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Search, Brain, Check, X, Zap } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Brain, Zap } from "lucide-react";
 import { FLAME, CARBON, ALABASTER } from "../lib/constants";
 import { Card } from "../components/Card";
 import { Btn } from "../components/Btn";
@@ -13,6 +13,7 @@ import { PageHeader } from "../components/PageHeader";
 import { ImpactBadge } from "../components/ImpactBadge";
 import { Modal } from "../components/Modal";
 import { EmptyState } from "../components/EmptyState";
+import { SkillAutocomplete, type SkillCatalogOption } from "../components/SkillAutocomplete";
 import { useCareerData } from "../contexts/CareerDataContext";
 import { useGamification } from "../contexts/GamificationContext";
 
@@ -20,7 +21,7 @@ const NEW_SKILL_CATS = ["Language", "Frontend", "Backend", "Database", "API", "D
 
 export default function SkillsPage() {
   const navigate = useNavigate();
-  const { skills, addSkill, updateSkill, deleteSkill, submitQuiz, quizResults } = useCareerData();
+  const { skills, addSkill, updateSkill, deleteSkill, submitQuiz } = useCareerData();
   const { referenceSkills } = useGamification();
   const [filter, setFilter] = useState("All");
   const [search, setSearch] = useState("");
@@ -31,6 +32,13 @@ export default function SkillsPage() {
   const [confirmDeleteSkill, setConfirmDeleteSkill] = useState<string | null>(null);
   const cats = ["All", ...Array.from(new Set(skills.map(s => s.cat)))];
   const list = skills.filter(s => (filter === "All" || s.cat === filter) && s.name.toLowerCase().includes(search.toLowerCase()));
+
+  const catalogOptions: SkillCatalogOption[] = referenceSkills.map((skill) => ({
+    id: String(skill.id),
+    name: String(skill.name),
+    category: String(skill.category ?? 'Tools'),
+    marketDemand: skill.marketDemand ? String(skill.marketDemand) : undefined,
+  }));
 
   const startQuiz = (skillName: string) => {
     toast.info(`Skill assessments for ${skillName} will use your profile level (${skills.find(s => s.name === skillName)?.pct ?? 0}%).`);
@@ -118,10 +126,20 @@ export default function SkillsPage() {
           {/* Skill Name */}
           <div>
             <label className="text-[13px] font-black block mb-1.5" style={{ color: CARBON }}>Skill Name</label>
-            <input value={newSkill.name} onChange={e => setNewSkill(p => ({ ...p, name: e.target.value }))}
-              placeholder="e.g. Python, Rust, Vue.js"
-              className="w-full h-11 px-4 rounded-xl border border-border text-[13px] text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-              style={{ backgroundColor: ALABASTER }} />
+            <SkillAutocomplete
+              value={newSkill.name}
+              onValueChange={(name, option) => setNewSkill((prev) => ({
+                ...prev,
+                name,
+                cat: option?.category ?? prev.cat,
+              }))}
+              options={catalogOptions}
+              excludeNames={skills.map((skill) => skill.name)}
+              placeholder="Search skills or type your own…"
+            />
+            <p className="mt-1.5 text-[11px] text-muted-foreground">
+              Pick from suggestions or add a custom skill that isn&apos;t listed.
+            </p>
           </div>
           {/* Category */}
           <div>
@@ -224,7 +242,7 @@ export default function SkillsPage() {
 
       <Modal open={confirmDeleteSkill !== null} onClose={() => setConfirmDeleteSkill(null)} maxWidth="sm" className="text-center">
         <Trash2 className="w-12 h-12 mx-auto mb-3 text-red-500" />
-        <h2 className="text-[16px] font-black mb-2" style={{ color: CARBON }}>Remove "{confirmDeleteSkill}"?</h2>
+        <h2 className="text-[16px] font-black mb-2" style={{ color: CARBON }}>Remove &ldquo;{confirmDeleteSkill}&rdquo;?</h2>
         <p className="text-[13px] text-muted-foreground mb-5">This skill will be removed from your profile. Job matches may be affected.</p>
         <div className="flex gap-3">
           <Btn variant="outline" full onClick={() => setConfirmDeleteSkill(null)}>Cancel</Btn>

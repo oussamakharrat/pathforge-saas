@@ -5,7 +5,6 @@ import { useNavigate, useSearchParams } from "@/lib/router";
 import { toast } from "sonner";
 import { Plus, Search, Sparkles, X, Mic, DollarSign, Pencil, Trash2, Briefcase } from "lucide-react";
 import { FLAME, CARBON, ALABASTER } from "../lib/constants";
-import { cn } from "../lib/utils";
 import { Card } from "../components/Card";
 import { Btn } from "../components/Btn";
 import { PageHeader } from "../components/PageHeader";
@@ -37,7 +36,9 @@ export default function JobTrackerPage() {
   const skillPcts = useMemo(() => skills.map(s => ({ name: s.name, pct: s.pct })), [skills]);
 
   useEffect(() => {
-    if (initialSearch) setSearch(initialSearch);
+    queueMicrotask(() => {
+      if (initialSearch) setSearch(initialSearch);
+    });
   }, [initialSearch]);
 
   const total = Object.values(cols).reduce((s, a) => s + a.length, 0);

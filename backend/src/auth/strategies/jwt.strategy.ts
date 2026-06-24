@@ -9,17 +9,18 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: process.env.JWT_SECRET || 'super-secret-jwt-key-change-in-production',
+      secretOrKey:
+        process.env.JWT_SECRET || 'super-secret-jwt-key-change-in-production',
     });
   }
 
   async validate(payload: { sub: string; email: string }) {
     const user = await this.prisma.user.findUnique({
       where: { id: payload.sub },
-      select: { id: true, email: true, displayName: true },
+      select: { id: true, email: true, displayName: true, isActive: true },
     });
 
-    if (!user) {
+    if (!user || !user.isActive) {
       throw new UnauthorizedException('User not found');
     }
 

@@ -1,11 +1,10 @@
 'use client';
 
 import { useNavigate } from "@/lib/router";
-import { Briefcase, MapPin, Clock, ArrowRight, Sparkles, CheckCircle2, Search, Users, Globe, Star } from "lucide-react";
-import { FLAME, CARBON, ALABASTER, DUST } from "../lib/constants";
+import { Briefcase, MapPin, Clock, ArrowRight, Sparkles, Users, Globe, Star } from "lucide-react";
+import { FLAME, CARBON } from "../lib/constants";
 import { Card } from "../components/Card";
 import { Btn } from "../components/Btn";
-import { Chip } from "../components/Chip";
 import { BrandLogo } from "../components/BrandLogo";
 
 const OPENINGS = [
@@ -118,8 +117,8 @@ export default function CareersPage() {
 
         {/* CTA */}
         <Card className="p-6 text-center" hover={false} style={{ borderColor: "rgba(241,80,37,0.2)" }}>
-          <h3 className="text-[16px] font-black mb-1" style={{ color: CARBON }}>Don't see the right fit?</h3>
-          <p className="text-[13px] text-muted-foreground mb-4">We're always looking for great people. Send us your resume and we'll keep you in mind.</p>
+          <h3 className="text-[16px] font-black mb-1" style={{ color: CARBON }}>Don&apos;t see the right fit?</h3>
+          <p className="text-[13px] text-muted-foreground mb-4">We&apos;re always looking for great people. Send us your resume and we&apos;ll keep you in mind.</p>
           <Btn onClick={() => { window.location.href = "mailto:careers@careergrowth.dev"; }}><Sparkles className="w-4 h-4" /> careers@careergrowth.dev</Btn>
         </Card>
       </div>

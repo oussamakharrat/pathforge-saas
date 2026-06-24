@@ -1,10 +1,9 @@
 'use client';
 
-import { ChevronLeft, ChevronRight, Award, Settings, Lock } from "lucide-react";
+import { ChevronLeft, ChevronRight, Award, Settings, Lock, type LucideIcon } from "lucide-react";
 import { useNavigate, useLocation } from "@/lib/router";
 import { cn } from "../lib/utils";
 import { FLAME, CARBON, NAV_ITEMS, NAV_GROUPS } from "../lib/constants";
-import type { NavGroup } from "../lib/constants";
 import { BrandLogo } from "./BrandLogo";
 import { useAuth } from "../contexts/AuthContext";
 import { useUpgrade } from "../contexts/UpgradeContext";
@@ -23,7 +22,7 @@ export function AppSidebar({ expanded, setExpanded }: { expanded: boolean; setEx
     else navigate(`/app/${p}`);
   };
 
-  const renderNavItem = (item: { id: string; label: string; icon: any }) => {
+  const renderNavItem = (item: { id: string; label: string; icon: LucideIcon }) => {
     const Icon = item.icon;
     const active = currentPath === item.id;
     const locked = !canAccess(item.id);

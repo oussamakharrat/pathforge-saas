@@ -3,7 +3,8 @@
  * This ensures pages using the old types continue to work.
  */
 
-import type { Skill, Goal, LearningPlan, LearningItem, JobApplication } from "@/domain/entities";
+import type { Skill, Goal, LearningItem, JobApplication } from "@/domain/entities";
+import type { SkillCategory, ApplicationStatus } from "@/domain/value-objects";
 import { getSkillLevelLabel } from "@/domain/entities/skill";
 import type {
   LegacySkill,
@@ -33,7 +34,7 @@ export function fromLegacySkill(legacy: LegacySkill, id?: string): Skill {
   return {
     id: id ?? `skill-${legacy.name.toLowerCase().replace(/\s+/g, "-")}`,
     name: legacy.name,
-    category: legacy.cat as any,
+    category: legacy.cat as SkillCategory,
     currentLevel: legacy.pct,
     targetLevel: 80,
     marketDemand: "medium",
@@ -199,7 +200,7 @@ export function fromLegacyKanbanData(data: LegacyKanbanData): JobApplication[] {
     cards.forEach((card) => {
       apps.push({
         ...fromLegacyKanbanCard(card),
-        status: status as any,
+        status: status as ApplicationStatus,
       });
     });
   }

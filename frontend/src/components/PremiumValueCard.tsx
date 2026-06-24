@@ -7,11 +7,9 @@
  */
 
 import { useMemo } from "react";
-import { useNavigate } from "@/lib/router";
-import { Lock, TrendingUp, Sparkles, Mic, DollarSign, Package, FileText, Star, ArrowRight, CheckCircle2 } from "lucide-react";
+import { Lock, TrendingUp, Sparkles, Mic, DollarSign, Package, FileText, ArrowRight, CheckCircle2, type LucideIcon } from "lucide-react";
 import { FLAME, CARBON } from "../lib/constants";
 import { Card } from "./Card";
-import { Btn } from "./Btn";
 import { useAuth } from "../contexts/AuthContext";
 import { useUpgrade } from "../contexts/UpgradeContext";
 
@@ -19,7 +17,7 @@ interface LockedFeature {
   id: string;
   page: string;
   label: string;
-  icon: any;
+  icon: LucideIcon;
   plan: "pro" | "premium";
   metrics: { label: string; value: string }[];
   preview: string;
@@ -146,7 +144,7 @@ export default function PremiumValueCard() {
 
                   {/* Preview */}
                   <p className="text-[9px] text-muted-foreground mb-1.5 italic">
-                    "{feature.preview}"
+                    &ldquo;{feature.preview}&rdquo;
                   </p>
 
                   {/* Benefit */}

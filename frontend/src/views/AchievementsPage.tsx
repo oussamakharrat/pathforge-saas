@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo } from "react";
-import { Trophy, Target, Zap, BookOpen, Mic, DollarSign, Award, Flame, CheckCircle2, Lock } from "lucide-react";
+import { Trophy, Target, Zap, BookOpen, Award, Flame, CheckCircle2, Lock } from "lucide-react";
 import { FLAME, CARBON, ALABASTER } from "../lib/constants";
 import { Card } from "../components/Card";
 import { Bar } from "../components/Bar";
@@ -18,20 +18,9 @@ const ICON_MAP: Record<string, typeof Trophy> = {
   milestone: Trophy,
 };
 
-const RARITY_COLORS: Record<string, string> = {
-  common: "#6B7280",
-  rare: "#3B82F6",
-  epic: "#8B5CF6",
-  legendary: "#F59E0B",
-  bronze: "#6B7280",
-  silver: "#3B82F6",
-  gold: "#F59E0B",
-  platinum: "#8B5CF6",
-};
-
 export default function AchievementsPage() {
   const { achievements, streakDays, loading } = useGamification();
-  const { goals, skills, learningSteps, outcomes } = useCareerData();
+  const { goals, skills, outcomes } = useCareerData();
   const [filter, setFilter] = useState<string>("all");
 
   const enriched = useMemo(() => {

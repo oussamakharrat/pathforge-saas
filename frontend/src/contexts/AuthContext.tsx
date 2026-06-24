@@ -19,17 +19,25 @@ import {
   type UserProfile,
 } from '@/data/types';
 
+interface AuthUser {
+  id: string;
+  email: string;
+  name: string | null;
+  createdAt: string;
+  streakDays: number;
+}
+
 interface AuthContextType {
   authed: boolean;
   isLoading: boolean;
-  user: { id: string; email: string; name: string | null } | null;
+  user: AuthUser | null;
   plan: Plan;
   profile: UserProfile | null;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, name?: string) => Promise<void>;
   logout: () => void;
   setPlan: (p: Plan) => void;
-  updateProfile: (data: Partial<UserProfile>) => void;
+  updateProfile: (data: Partial<UserProfile>) => Promise<void>;
   canAccess: (page: string) => boolean;
   planLabel: string;
   lockedPages: string[];
@@ -39,46 +47,97 @@ const PLAN_LABELS: Record<Plan, string> = { free: 'Free', pro: 'Pro', premium: '
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
+function mapCareerProfile(
+  cp: Record<string, unknown> | null | undefined,
+  fallback: { name: string; email: string },
+): UserProfile {
+  return {
+    name: fallback.name,
+    email: fallback.email,
+    currentRole: String(cp?.currentRole ?? ''),
+    targetRole: String(cp?.targetRole ?? ''),
+    location: String(cp?.location ?? ''),
+    bio: String(cp?.bio ?? ''),
+    experienceLevel:
+      (cp?.experienceLevel as UserProfile['experienceLevel']) ?? '1-3',
+    educationLevel: 'bachelor',
+    referralSource: 'other',
+    biggestChallenges: [],
+    onboardingComplete: Boolean(cp?.onboardingComplete),
+  };
+}
+
+function mapMeToState(me: Record<string, unknown>) {
+  const cp = me.careerProfile as Record<string, unknown> | null | undefined;
+  const subscription = me.subscription as Record<string, unknown> | null | undefined;
+  const name = String(me.displayName ?? '');
+  const email = String(me.email ?? '');
+
+  return {
+    user: {
+      id: String(me.id),
+      email,
+      name: name || null,
+      createdAt: String(me.createdAt ?? new Date().toISOString()),
+      streakDays: Number(me.streakDays ?? 0),
+    },
+    plan: (subscription?.plan as Plan) ?? 'free',
+    profile: mapCareerProfile(cp, { name, email }),
+  };
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<{ id: string; email: string; name: string | null } | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [plan, setPlanState] = useState<Plan>('free');
   const [profile, setProfile] = useState<UserProfile | null>(null);
 
+  const applyProfileResponse = useCallback((p: Awaited<ReturnType<typeof api.getProfile>>) => {
+    setUser({
+      id: p.id,
+      email: p.email,
+      name: p.name,
+      createdAt: p.createdAt,
+      streakDays: p.streakDays,
+    });
+    setPlanState(p.plan ?? 'free');
+    setProfile(
+      mapCareerProfile(p.profile, {
+        name: p.name ?? '',
+        email: p.email,
+      }),
+    );
+  }, []);
+
   const hydrate = useCallback(async () => {
     try {
       const p = await api.getProfile();
-      setUser({ id: p.id, email: p.email, name: p.name });
-      setPlanState(p.plan ?? 'free');
-      if (p.profile) {
-        const cp = p.profile as Record<string, unknown>;
-        setProfile({
-          name: p.name ?? '',
-          email: p.email,
-          targetRole: (cp.targetRole as string) ?? '',
-          experienceLevel: (cp.experienceLevel as UserProfile['experienceLevel']) ?? '1-3',
-          educationLevel: 'bachelor',
-          referralSource: 'other',
-          biggestChallenges: [],
-          onboardingComplete: Boolean(cp.onboardingComplete),
-        });
-      }
+      applyProfileResponse(p);
     } catch {
       localStorage.removeItem('token');
       setUser(null);
+      setProfile(null);
     }
-  }, []);
+  }, [applyProfileResponse]);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
-    if (token) hydrate().finally(() => setIsLoading(false));
-    else setIsLoading(false);
+    queueMicrotask(() => {
+      if (token) hydrate().finally(() => setIsLoading(false));
+      else setIsLoading(false);
+    });
   }, [hydrate]);
 
   const login = useCallback(async (email: string, password: string) => {
     const res = await api.login(email, password);
     localStorage.setItem('token', res.token);
-    setUser(res.user);
+    setUser({
+      id: res.user.id,
+      email: res.user.email,
+      name: res.user.name,
+      createdAt: new Date().toISOString(),
+      streakDays: 0,
+    });
     await hydrate();
     toast.success('Welcome back!');
   }, [hydrate]);
@@ -86,7 +145,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const register = useCallback(async (email: string, password: string, name?: string) => {
     const res = await api.register(email, password, name);
     localStorage.setItem('token', res.token);
-    setUser(res.user);
+    setUser({
+      id: res.user.id,
+      email: res.user.email,
+      name: res.user.name,
+      createdAt: new Date().toISOString(),
+      streakDays: 0,
+    });
     await hydrate();
   }, [hydrate]);
 
@@ -102,17 +167,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     void api.updateSubscription({ plan: p }).catch(() => undefined);
   }, []);
 
-  const updateProfile = useCallback((data: Partial<UserProfile>) => {
+  const updateProfile = useCallback(async (data: Partial<UserProfile>) => {
     setProfile((prev) => (prev ? { ...prev, ...data } : null));
-    api
-      .updateProfile({
+    if (data.name !== undefined) {
+      setUser((prev) => (prev ? { ...prev, name: data.name ?? prev.name } : null));
+    }
+
+    try {
+      const updated = await api.updateProfile({
         displayName: data.name,
+        currentRole: data.currentRole,
         targetRole: data.targetRole,
         experienceLevel: data.experienceLevel,
+        location: data.location,
+        bio: data.bio,
         onboardingComplete: data.onboardingComplete,
-      })
-      .catch(() => undefined);
-  }, []);
+      }) as Record<string, unknown>;
+
+      const mapped = mapMeToState(updated);
+      setUser(mapped.user);
+      setPlanState(mapped.plan);
+      setProfile(mapped.profile);
+    } catch (err) {
+      await hydrate();
+      throw err;
+    }
+  }, [hydrate]);
 
   const canAccess = useCallback((page: string) => canAccessPage(plan, page), [plan]);
   const planLabel = PLAN_LABELS[plan];

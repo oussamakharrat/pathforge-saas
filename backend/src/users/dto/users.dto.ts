@@ -1,4 +1,13 @@
-import { IsString, IsOptional, IsArray, IsBoolean, IsInt, Min, Max } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsArray,
+  IsBoolean,
+  IsInt,
+  Min,
+  Max,
+  ValidateIf,
+} from 'class-validator';
 
 export class UpdateProfileDto {
   @IsOptional() @IsString() currentRole?: string;
@@ -13,7 +22,15 @@ export class UpdateProfileDto {
 }
 
 export class UpsertUserSkillDto {
-  @IsString() skillCatalogId: string;
+  @ValidateIf((dto: UpsertUserSkillDto) => !dto.name)
+  @IsString()
+  skillCatalogId?: string;
+
+  @ValidateIf((dto: UpsertUserSkillDto) => !dto.skillCatalogId)
+  @IsString()
+  name?: string;
+
+  @IsOptional() @IsString() category?: string;
   @IsOptional() @IsInt() @Min(0) @Max(100) currentLevel?: number;
   @IsOptional() @IsInt() @Min(0) @Max(100) targetLevel?: number;
 }

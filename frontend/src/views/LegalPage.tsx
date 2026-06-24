@@ -1,8 +1,8 @@
 'use client';
 
 import { useNavigate } from "@/lib/router";
-import { Shield, FileText, Eye, Lock, Database, Mail, ArrowRight } from "lucide-react";
-import { FLAME, CARBON, DUST, ALABASTER } from "../lib/constants";
+import { Shield, FileText, Eye, Lock, Database, Mail } from "lucide-react";
+import { FLAME, CARBON } from "../lib/constants";
 import { Card } from "../components/Card";
 import { Btn } from "../components/Btn";
 import { BrandLogo } from "../components/BrandLogo";
@@ -103,7 +103,7 @@ export default function LegalPage({ page }: LegalPageProps) {
 
         {/* Footer */}
         <div className="mt-10 text-center border-t border-border pt-6">
-          <p className="text-[12px] text-muted-foreground mb-4">Have questions about these terms? We're here to help.</p>
+          <p className="text-[12px] text-muted-foreground mb-4">Have questions about these terms? We&apos;re here to help.</p>
           <Btn variant="outline" onClick={() => { window.location.href = "mailto:hello@careergrowth.dev"; }}>
             <Mail className="w-4 h-4" /> hello@careergrowth.dev
           </Btn>

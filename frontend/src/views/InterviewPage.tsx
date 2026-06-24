@@ -16,7 +16,6 @@ import { useCareerData } from "../contexts/CareerDataContext";
 function scoreAnswer(answer: string, type: string): { score: number; feedback: string } {
   const text = answer.trim();
   const wordCount = text.split(/\s+/).length;
-  const charCount = text.length;
 
   // Length score (0-40 points)
   let lengthScore = 0;

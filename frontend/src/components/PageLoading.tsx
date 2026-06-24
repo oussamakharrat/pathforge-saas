@@ -1,5 +1,3 @@
-import { CARBON } from "../lib/constants";
-
 export function PageLoading() {
   return (
     <div className="space-y-5 animate-pulse">

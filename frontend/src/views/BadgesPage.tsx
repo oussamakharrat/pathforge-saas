@@ -1,11 +1,10 @@
 'use client';
 
 import { useState, useMemo } from "react";
-import { Trophy, Target, BookOpen, Zap, Briefcase, Flame, Users, Sparkles, Lock, CheckCircle2, ChevronRight } from "lucide-react";
+import { Trophy, Target, BookOpen, Zap, Briefcase, Flame, Users, CheckCircle2 } from "lucide-react";
 import { cn } from "../lib/utils";
 import { FLAME, CARBON } from "../lib/constants";
 import { Card } from "../components/Card";
-import { Bar } from "../components/Bar";
 import { PageHeader } from "../components/PageHeader";
 import { EmptyState } from "../components/EmptyState";
 import { useGamification } from "../contexts/GamificationContext";

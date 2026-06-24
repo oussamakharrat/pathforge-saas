@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useNavigate } from "@/lib/router";
 import { toast } from "sonner";
-import { User, Mail, Lock, Eye, EyeOff, ArrowRight, Brain, Mic, DollarSign, Globe, Github } from "lucide-react";
+import { User, Mail, Lock, Eye, EyeOff, ArrowRight, Globe, Github } from "lucide-react";
 import { FLAME, CARBON, DUST, ALABASTER } from "../lib/constants";
 import { Btn } from "../components/Btn";
 import { Field } from "../components/Field";
@@ -47,7 +47,12 @@ export default function AuthPage({ mode: initialMode }: { mode: "login" | "regis
         navigate('/app/dashboard');
       }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Authentication failed');
+      const message = err instanceof Error ? err.message : 'Authentication failed';
+      toast.error(
+        message === 'Invalid credentials'
+          ? 'Invalid email or password. Register first, or use demo@pathforge.dev / password123'
+          : message,
+      );
     } finally {
       setLoading(false);
     }

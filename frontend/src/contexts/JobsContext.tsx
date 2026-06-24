@@ -64,7 +64,7 @@ export function JobsProvider({ children }: { children: ReactNode }) {
   }, [authed]);
 
   useEffect(() => {
-    void refreshApplications();
+    queueMicrotask(() => { void refreshApplications(); });
   }, [refreshApplications]);
 
   const moveCard = useCallback(async (cardId: string, from: KanbanCol, to: KanbanCol) => {
@@ -88,7 +88,7 @@ export function JobsProvider({ children }: { children: ReactNode }) {
       const job = await api.createJobPosting({
         company: card.company,
         title: card.role,
-        salaryRange: card.salary,
+        salaryRange: { display: card.salary },
         companyLogo: card.logo,
         matchScore: card.match,
       });

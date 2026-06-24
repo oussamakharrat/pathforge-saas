@@ -17,9 +17,8 @@
 
 import type { Skill } from "../entities/skill";
 import type { Goal } from "../entities/goal";
-import { recalculateGoalProgress, toggleMilestone } from "../entities/goal";
-import type { LearningPlan, LearningItem } from "../entities/learning-plan";
-import { recalculateLearningPlanProgress } from "../entities/learning-plan";
+import { toggleMilestone } from "../entities/goal";
+import type { LearningPlan } from "../entities/learning-plan";
 import type { JobApplication } from "../entities/job-application";
 import { getStatusTransitionEvent } from "../entities/job-application";
 import type { Interview } from "../entities/interview";
@@ -129,6 +128,7 @@ export function applyApplicationStatusImpact(
   interviewCreated: boolean;
   eventType: "application" | "interview" | "offer" | "rejection" | null;
 } {
+  void existingInterviews;
   const eventType = getStatusTransitionEvent(application.status, newStatus);
   const updatedApp = { ...application, status: newStatus };
   const interviewCreated =

@@ -13,18 +13,22 @@ import {
   Sparkles,
   ChevronRight,
   Shield,
-  Award,
   ExternalLink,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Sheet, SheetContent } from "../components/ui/sheet";
 import { FLAME, CARBON } from "../lib/constants";
 import { useAuth } from "../contexts/AuthContext";
+import { getInitials } from "../lib/utils";
 
 export function AvatarDropdown() {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
-  const { logout, plan, planLabel } = useAuth();
+  const { logout, plan, planLabel, user } = useAuth();
+
+  const displayName = user?.name ?? user?.email?.split("@")[0] ?? "User";
+  const displayEmail = user?.email ?? "";
+  const initials = getInitials(displayName);
 
   const handleLogout = () => {
     logout();
@@ -72,7 +76,7 @@ export function AvatarDropdown() {
       <button onClick={() => setOpen(true)}
         className="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-black text-white cursor-pointer hover:opacity-80 transition-all ring-2 ring-transparent hover:ring-orange-300/60 active:scale-95"
         style={{ backgroundColor: FLAME }}>
-        JL
+        {initials}
       </button>
 
       <Sheet open={open} onOpenChange={setOpen}>
@@ -88,11 +92,11 @@ export function AvatarDropdown() {
             <div className="flex items-start gap-4 relative z-10">
               <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-lg font-black text-white flex-shrink-0 shadow-lg"
                 style={{ backgroundColor: FLAME }}>
-                JL
+                {initials}
               </div>
               <div className="min-w-0 flex-1 pt-1">
-                <p className="text-[16px] font-bold text-white truncate">Jordan Lee</p>
-                <p className="text-[12px] text-white/50 truncate mt-0.5">jordan@example.com</p>
+                <p className="text-[16px] font-bold text-white truncate">{displayName}</p>
+                <p className="text-[12px] text-white/50 truncate mt-0.5">{displayEmail}</p>
                 <div className="mt-2 flex items-center gap-1.5">
                   <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full tracking-wide uppercase"
                     style={{ backgroundColor: "rgba(241,80,37,0.2)", color: FLAME }}>

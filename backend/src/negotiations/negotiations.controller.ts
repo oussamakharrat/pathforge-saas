@@ -1,7 +1,10 @@
 import { Controller, Get, Post, Patch, Body, Param } from '@nestjs/common';
 import { NegotiationsService } from './negotiations.service';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import { CreateNegotiationDto, UpdateNegotiationDto } from './dto/negotiations.dto';
+import {
+  CreateNegotiationDto,
+  UpdateNegotiationDto,
+} from './dto/negotiations.dto';
 
 @Controller('negotiations')
 export class NegotiationsController {
@@ -18,7 +21,10 @@ export class NegotiationsController {
   }
 
   @Post()
-  create(@CurrentUser() user: { id: string }, @Body() dto: CreateNegotiationDto) {
+  create(
+    @CurrentUser() user: { id: string },
+    @Body() dto: CreateNegotiationDto,
+  ) {
     return this.service.create(user.id, dto);
   }
 

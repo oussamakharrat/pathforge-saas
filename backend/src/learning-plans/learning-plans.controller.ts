@@ -1,4 +1,12 @@
-import { Controller, Get, Post, Patch, Delete, Body, Param } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Body,
+  Param,
+} from '@nestjs/common';
 import { LearningPlansService } from './learning-plans.service';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import {
@@ -23,7 +31,10 @@ export class LearningPlansController {
   }
 
   @Post()
-  create(@CurrentUser() user: { id: string }, @Body() dto: CreateLearningPlanDto) {
+  create(
+    @CurrentUser() user: { id: string },
+    @Body() dto: CreateLearningPlanDto,
+  ) {
     return this.service.create(user.id, dto);
   }
 

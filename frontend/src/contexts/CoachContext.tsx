@@ -46,7 +46,7 @@ export function CoachProvider({ children }: { children: ReactNode }) {
   }, [authed]);
 
   useEffect(() => {
-    void refreshConversations();
+    queueMicrotask(() => { void refreshConversations(); });
   }, [refreshConversations]);
 
   const loadConversation = useCallback(async (id: string) => {

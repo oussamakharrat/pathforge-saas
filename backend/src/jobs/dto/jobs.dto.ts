@@ -8,7 +8,24 @@ import {
   IsBoolean,
   Min,
   Max,
+  IsEnum,
 } from 'class-validator';
+import { Transform } from 'class-transformer';
+import {
+  ApplicationStatus,
+  InterviewStatus,
+  InterviewType,
+} from '@prisma/client';
+
+function normalizeSalaryRange(
+  value: unknown,
+): Record<string, unknown> | undefined {
+  if (typeof value === 'string') return { display: value };
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    return value as Record<string, unknown>;
+  }
+  return undefined;
+}
 
 export class CreateJobPostingDto {
   @IsString() company: string;
@@ -16,7 +33,10 @@ export class CreateJobPostingDto {
   @IsOptional() @IsString() description?: string;
   @IsOptional() @IsString() location?: string;
   @IsOptional() @IsString() url?: string;
-  @IsOptional() @IsObject() salaryRange?: Record<string, unknown>;
+  @IsOptional()
+  @Transform(({ value }) => normalizeSalaryRange(value) ?? {})
+  @IsObject()
+  salaryRange?: Record<string, unknown>;
   @IsOptional() @IsString() source?: string;
   @IsOptional() @IsString() companyLogo?: string;
   @IsOptional() @IsInt() matchScore?: number;
@@ -29,7 +49,10 @@ export class UpdateJobPostingDto {
   @IsOptional() @IsString() description?: string;
   @IsOptional() @IsString() location?: string;
   @IsOptional() @IsString() url?: string;
-  @IsOptional() @IsObject() salaryRange?: Record<string, unknown>;
+  @IsOptional()
+  @Transform(({ value }) => normalizeSalaryRange(value))
+  @IsObject()
+  salaryRange?: Record<string, unknown>;
   @IsOptional() @IsInt() matchScore?: number;
   @IsOptional() @IsArray() skillCatalogIds?: string[];
 }
@@ -38,15 +61,15 @@ export class CreateApplicationDto {
   @IsString() jobId: string;
   @IsOptional() @IsString() goalId?: string;
   @IsOptional() @IsString() notes?: string;
-  @IsOptional() @IsString() status?: string;
+  @IsOptional() @IsEnum(ApplicationStatus) status?: ApplicationStatus;
 }
 
 export class UpdateApplicationStatusDto {
-  @IsString() status: string;
+  @IsEnum(ApplicationStatus) status: ApplicationStatus;
 }
 
 export class CreateInterviewDto {
-  @IsString() type: string;
+  @IsEnum(InterviewType) type: InterviewType;
   @IsDateString() date: string;
   @IsOptional() @IsString() company?: string;
   @IsOptional() @IsString() role?: string;
@@ -54,7 +77,7 @@ export class CreateInterviewDto {
 }
 
 export class UpdateInterviewDto {
-  @IsOptional() @IsString() status?: string;
+  @IsOptional() @IsEnum(InterviewStatus) status?: InterviewStatus;
   @IsOptional() @IsInt() @Min(0) @Max(100) score?: number;
   @IsOptional() @IsString() feedback?: string;
   @IsOptional() answers?: unknown[];

@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "@/lib/router";
-import { Bell, CheckCheck, Trash2, Sparkles, Target, BookOpen, Zap, DollarSign, Award, Trophy, Brain, Briefcase, Mic, X } from "lucide-react";
+import { Bell, CheckCheck, Trash2, Sparkles, Target, BookOpen, Zap, DollarSign, Award, Trophy, Brain, Briefcase, X } from "lucide-react";
 import { cn } from "../lib/utils";
 import { FLAME, CARBON } from "../lib/constants";
 import { useNotifications } from "../contexts/NotificationContext";
