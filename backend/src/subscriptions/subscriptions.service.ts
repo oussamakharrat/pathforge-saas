@@ -17,13 +17,32 @@ export class SubscriptionsService {
       'Subscription',
     );
 
+    const nextPlan = dto.plan ?? existing.plan;
+
     return this.prisma.subscription.update({
       where: { userId },
       data: {
-        plan: dto.plan ?? existing.plan,
+        plan: nextPlan,
         billingCycle: dto.billingCycle ?? existing.billingCycle,
         stripeCustomerId: dto.stripeCustomerId ?? existing.stripeCustomerId,
-        status: dto.plan && dto.plan !== 'free' ? 'active' : existing.status,
+        status: 'active',
+        ...(nextPlan === 'free' ? { currentPeriodEnd: null } : {}),
+      },
+    });
+  }
+
+  async cancel(userId: string) {
+    assertFound(
+      await this.prisma.subscription.findUnique({ where: { userId } }),
+      'Subscription',
+    );
+
+    return this.prisma.subscription.update({
+      where: { userId },
+      data: {
+        plan: 'free',
+        status: 'active',
+        currentPeriodEnd: null,
       },
     });
   }

@@ -258,6 +258,10 @@ export const api = {
     return request<Record<string, unknown>>('/subscriptions/me', { method: 'PATCH', body: JSON.stringify(data) });
   },
 
+  cancelSubscription() {
+    return request<Record<string, unknown>>('/subscriptions/me/cancel', { method: 'POST' });
+  },
+
   getReferenceSkills() {
     return request<Record<string, unknown>[]>('/reference/skills');
   },

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate } from "@/lib/router";
 import { toast } from "sonner";
 import { User, Mail, Briefcase, Globe, Edit3, Check, Award, ExternalLink, X, Copy } from "lucide-react";
@@ -12,7 +12,8 @@ import { Field } from "../components/Field";
 import { PageHeader } from "../components/PageHeader";
 import { useAuth } from "../contexts/AuthContext";
 import { useCareerData } from "../contexts/CareerDataContext";
-import { getInitials } from "../lib/utils";
+import { prepareAvatarImage } from "../lib/avatar-image";
+import { UserAvatar } from "../components/UserAvatar";
 import type { Plan } from "../data/types";
 
 const PLAN_DETAILS: Record<Plan, { tagline: string; aiLimit: number; resumeLimit: number; jobLimit: number }> = {
@@ -41,7 +42,7 @@ function formatMemberSince(createdAt: string): string {
 
 export default function SettingsPage() {
   const navigate = useNavigate();
-  const { logout, user, profile, plan, planLabel, updateProfile, isLoading } = useAuth();
+  const { logout, user, profile, plan, planLabel, updateProfile, cancelPlan, isLoading } = useAuth();
   const { purchasedServices, outcomes, careerScore, skills } = useCareerData();
   const hasLinkedIn = purchasedServices.includes("LinkedIn Optimization");
 
@@ -52,6 +53,10 @@ export default function SettingsPage() {
   const [role, setRole] = useState("");
   const [location, setLocation] = useState("");
   const [saving, setSaving] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [activeTab, setActiveTab] = useState<"profile" | "notifications" | "billing" | "danger">("profile");
 
   useEffect(() => {
@@ -59,11 +64,11 @@ export default function SettingsPage() {
       setName(user?.name ?? profile?.name ?? "");
       setRole(profile?.currentRole ?? profile?.targetRole ?? "");
       setLocation(profile?.location ?? "");
+      setAvatarUrl(profile?.avatarUrl ?? "");
     });
   }, [user, profile]);
 
   const email = user?.email ?? profile?.email ?? "";
-  const initials = getInitials(name || email);
   const memberSince = user?.createdAt ? formatMemberSince(user.createdAt) : "Recently";
   const profileCompletion = computeProfileCompletion(
     name,
@@ -87,6 +92,27 @@ export default function SettingsPage() {
 
   const planInfo = PLAN_DETAILS[plan];
 
+  const confirmCancelPlan = () => {
+    toast(`Cancel your ${planLabel} plan?`, {
+      description: 'You will lose access to premium features and return to the Free plan immediately.',
+      action: {
+        label: 'Yes, cancel plan',
+        onClick: () => {
+          void (async () => {
+            setCancelling(true);
+            try {
+              await cancelPlan();
+            } catch (err) {
+              toast.error(err instanceof Error ? err.message : 'Failed to cancel plan');
+            } finally {
+              setCancelling(false);
+            }
+          })();
+        },
+      },
+    });
+  };
+
   const save = async () => {
     if (!name.trim()) {
       toast.error("Name is required");
@@ -104,6 +130,37 @@ export default function SettingsPage() {
       toast.error(err instanceof Error ? err.message : "Failed to save settings");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
+    setUploadingAvatar(true);
+    try {
+      const dataUrl = await prepareAvatarImage(file);
+      await updateProfile({ avatarUrl: dataUrl });
+      setAvatarUrl(dataUrl);
+      toast.success("Profile photo updated!");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to upload photo");
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+
+  const removeAvatar = async () => {
+    setUploadingAvatar(true);
+    try {
+      await updateProfile({ avatarUrl: "" });
+      setAvatarUrl("");
+      toast.success("Profile photo removed.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to remove photo");
+    } finally {
+      setUploadingAvatar(false);
     }
   };
 
@@ -125,9 +182,9 @@ export default function SettingsPage() {
       <div className="max-w-6xl space-y-5">
         <PageHeader title="Settings" subtitle="Loading your profile..." />
         <Card className="p-8 animate-pulse" hover={false}>
-          <div className="h-16 w-16 rounded-2xl bg-secondary mb-4" />
-          <div className="h-4 w-48 bg-secondary rounded mb-2" />
-          <div className="h-3 w-32 bg-secondary rounded" />
+          <div className="h-24 w-24 rounded-3xl bg-secondary mb-4" />
+          <div className="h-8 w-64 bg-secondary rounded mb-2" />
+          <div className="h-4 w-40 bg-secondary rounded" />
         </Card>
       </div>
     );
@@ -150,21 +207,67 @@ export default function SettingsPage() {
 
       {activeTab === "profile" && (
         <Card className="overflow-hidden p-0" hover={false}>
-          <div className="flex flex-col gap-4 border-b border-border p-5 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-4">
-              <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl text-lg font-black text-white" style={{ background: "linear-gradient(135deg, #F15025, #FF9B6A)" }}>
-                {initials}
-                <button onClick={() => toast.info("Photo upload coming soon")} className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full border border-border bg-white"><Edit3 className="h-3 w-3" style={{ color: CARBON }} /></button>
+          <div className="flex flex-col gap-6 border-b border-border p-6 sm:p-8 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-col items-center gap-5 sm:flex-row sm:items-center sm:gap-6">
+              <div className="relative shrink-0">
+                <UserAvatar
+                  src={avatarUrl}
+                  name={name || email}
+                  size="2xl"
+                  className={uploadingAvatar ? "opacity-60" : undefined}
+                />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploadingAvatar}
+                  className="absolute -bottom-1 -right-1 flex h-8 w-8 items-center justify-center rounded-full border border-border bg-white shadow-sm disabled:opacity-50"
+                  aria-label="Change profile photo"
+                >
+                  <Edit3 className="h-4 w-4" style={{ color: CARBON }} />
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/gif"
+                  className="hidden"
+                  onChange={(e) => void handleAvatarChange(e)}
+                />
               </div>
-              <div>
-                <p className="text-[15px] font-semibold" style={{ color: CARBON }}>{name || "Your Profile"}</p>
-                <p className="text-[12px] text-muted-foreground">
+              <div className="min-w-0 text-center sm:text-left">
+                <h2 className="text-2xl font-black tracking-tight sm:text-3xl" style={{ color: CARBON }}>
+                  {name || "Your Profile"}
+                </h2>
+                <p className="mt-1.5 text-sm text-muted-foreground">
                   {planLabel} Plan · Member since {memberSince}
                   {user?.streakDays ? ` · ${user.streakDays}-day streak` : ""}
                 </p>
+                <div className="mt-3 flex flex-wrap items-center justify-center gap-2 sm:justify-start">
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploadingAvatar}
+                    className="text-[13px] font-semibold hover:underline disabled:opacity-50"
+                    style={{ color: FLAME }}
+                  >
+                    {uploadingAvatar ? "Uploading..." : "Change photo"}
+                  </button>
+                  {avatarUrl && (
+                    <>
+                      <span className="text-[13px] text-muted-foreground">·</span>
+                      <button
+                        type="button"
+                        onClick={() => void removeAvatar()}
+                        disabled={uploadingAvatar}
+                        className="text-[13px] font-semibold text-muted-foreground hover:text-red-600 hover:underline disabled:opacity-50"
+                      >
+                        Remove
+                      </button>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
-            <span className="inline-flex w-fit items-center rounded-full bg-[#FFF7F1] px-3 py-1 text-[11px] font-semibold" style={{ color: FLAME }}>
+            <span className="inline-flex w-fit items-center self-center rounded-full bg-[#FFF7F1] px-3.5 py-1.5 text-xs font-semibold sm:self-auto" style={{ color: FLAME }}>
               Profile complete · {profileCompletion}%
             </span>
           </div>
@@ -265,6 +368,24 @@ export default function SettingsPage() {
               <div className="mt-4"><Btn full onClick={() => navigate("/pricing")}><Award className="h-4 w-4" /> Upgrade to Pro — $29/mo</Btn></div>
             )}
           </Card>
+          {plan !== "free" && (
+            <Card className="p-5" hover={false}>
+              <h3 className="text-[14px] font-semibold mb-1" style={{ color: CARBON }}>Manage Subscription</h3>
+              <p className="text-[12px] text-muted-foreground mb-4">
+                You&apos;re currently on the {planLabel} plan. Cancel anytime to return to the Free plan — no questions asked.
+              </p>
+              <Btn variant="outline" onClick={confirmCancelPlan} disabled={cancelling}>
+                {cancelling ? (
+                  <>
+                    <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current/30 border-t-current" />
+                    Cancelling...
+                  </>
+                ) : (
+                  'Cancel plan & return to Free'
+                )}
+              </Btn>
+            </Card>
+          )}
           <Card className="p-5" hover={false}>
             <h3 className="text-[14px] font-semibold mb-3" style={{ color: CARBON }}>Usage This Month</h3>
             <div className="space-y-3">

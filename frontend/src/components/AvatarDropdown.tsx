@@ -19,16 +19,16 @@ import { toast } from "sonner";
 import { Sheet, SheetContent } from "../components/ui/sheet";
 import { FLAME, CARBON } from "../lib/constants";
 import { useAuth } from "../contexts/AuthContext";
-import { getInitials } from "../lib/utils";
+import { UserAvatar } from "./UserAvatar";
 
 export function AvatarDropdown() {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
-  const { logout, plan, planLabel, user } = useAuth();
+  const { logout, plan, planLabel, user, profile } = useAuth();
 
   const displayName = user?.name ?? user?.email?.split("@")[0] ?? "User";
   const displayEmail = user?.email ?? "";
-  const initials = getInitials(displayName);
+  const avatarUrl = profile?.avatarUrl || null;
 
   const handleLogout = () => {
     logout();
@@ -73,10 +73,8 @@ export function AvatarDropdown() {
   return (
     <>
       {/* Avatar trigger */}
-      <button onClick={() => setOpen(true)}
-        className="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-black text-white cursor-pointer hover:opacity-80 transition-all ring-2 ring-transparent hover:ring-orange-300/60 active:scale-95"
-        style={{ backgroundColor: FLAME }}>
-        {initials}
+      <button onClick={() => setOpen(true)} className="cursor-pointer hover:opacity-80 transition-all ring-2 ring-transparent hover:ring-orange-300/60 active:scale-95 rounded-full">
+        <UserAvatar src={avatarUrl} name={displayName} size="sm" />
       </button>
 
       <Sheet open={open} onOpenChange={setOpen}>
@@ -90,10 +88,7 @@ export function AvatarDropdown() {
               style={{ background: `radial-gradient(circle, #FBBF24, transparent)` }} />
 
             <div className="flex items-start gap-4 relative z-10">
-              <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-lg font-black text-white flex-shrink-0 shadow-lg"
-                style={{ backgroundColor: FLAME }}>
-                {initials}
-              </div>
+              <UserAvatar src={avatarUrl} name={displayName} size="lg" className="shadow-lg" />
               <div className="min-w-0 flex-1 pt-1">
                 <p className="text-[16px] font-bold text-white truncate">{displayName}</p>
                 <p className="text-[12px] text-white/50 truncate mt-0.5">{displayEmail}</p>

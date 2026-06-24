@@ -6,6 +6,7 @@ import {
   IsInt,
   Min,
   Max,
+  MaxLength,
   ValidateIf,
 } from 'class-validator';
 
@@ -15,7 +16,7 @@ export class UpdateProfileDto {
   @IsOptional() @IsString() experienceLevel?: string;
   @IsOptional() @IsString() bio?: string;
   @IsOptional() @IsString() location?: string;
-  @IsOptional() @IsString() avatarUrl?: string;
+  @IsOptional() @IsString() @MaxLength(500000) avatarUrl?: string;
   @IsOptional() @IsArray() preferredIndustries?: string[];
   @IsOptional() @IsBoolean() onboardingComplete?: boolean;
   @IsOptional() @IsString() displayName?: string;

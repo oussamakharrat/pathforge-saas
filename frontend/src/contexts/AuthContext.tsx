@@ -36,7 +36,8 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, name?: string) => Promise<void>;
   logout: () => void;
-  setPlan: (p: Plan) => void;
+  setPlan: (p: Plan) => Promise<void>;
+  cancelPlan: () => Promise<void>;
   updateProfile: (data: Partial<UserProfile>) => Promise<void>;
   canAccess: (page: string) => boolean;
   planLabel: string;
@@ -58,6 +59,7 @@ function mapCareerProfile(
     targetRole: String(cp?.targetRole ?? ''),
     location: String(cp?.location ?? ''),
     bio: String(cp?.bio ?? ''),
+    avatarUrl: String(cp?.avatarUrl ?? ''),
     experienceLevel:
       (cp?.experienceLevel as UserProfile['experienceLevel']) ?? '1-3',
     educationLevel: 'bachelor',
@@ -162,9 +164,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setProfile(null);
   }, []);
 
-  const setPlan = useCallback((p: Plan) => {
+  const setPlan = useCallback(async (p: Plan) => {
+    await api.updateSubscription({ plan: p });
     setPlanState(p);
-    void api.updateSubscription({ plan: p }).catch(() => undefined);
+  }, []);
+
+  const cancelPlan = useCallback(async () => {
+    await api.cancelSubscription();
+    setPlanState('free');
+    toast.success('Your plan has been cancelled. You are now on the Free plan.');
   }, []);
 
   const updateProfile = useCallback(async (data: Partial<UserProfile>) => {
@@ -181,6 +189,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         experienceLevel: data.experienceLevel,
         location: data.location,
         bio: data.bio,
+        avatarUrl: data.avatarUrl,
         onboardingComplete: data.onboardingComplete,
       }) as Record<string, unknown>;
 
@@ -216,6 +225,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         register,
         logout,
         setPlan,
+        cancelPlan,
         updateProfile,
         canAccess,
         planLabel,

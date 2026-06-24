@@ -79,21 +79,44 @@ const PLANS: { id: Plan; name: string; price: string; desc: string; features: st
 export default function PricingPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { plan: currentPlan, setPlan } = useAuth();
+  const { plan: currentPlan, setPlan, cancelPlan, authed } = useAuth();
   const [loading, setLoading] = useState<string | null>(null);
   const [faqOpen, setFaqOpen] = useState<number | null>(0);
 
   const isUpgradePrompt = searchParams.get("upgrade") === "true";
 
-  const handleUpgrade = (plan: Plan) => {
-    if (plan === "free") return;
+  const handlePlanAction = (plan: Plan) => {
+    if (!authed) {
+      navigate("/login");
+      return;
+    }
+    if (plan === currentPlan) return;
+
+    if (plan === "free" && currentPlan !== "free") {
+      toast(`Downgrade to Free?`, {
+        description: 'You will lose access to premium features immediately.',
+        action: {
+          label: 'Confirm downgrade',
+          onClick: () => {
+            setLoading(plan);
+            void cancelPlan()
+              .then(() => navigate("/app/settings"))
+              .catch((err) => toast.error(err instanceof Error ? err.message : 'Failed to cancel plan'))
+              .finally(() => setLoading(null));
+          },
+        },
+      });
+      return;
+    }
+
     setLoading(plan);
-    setTimeout(() => {
-      setLoading(null);
-      setPlan(plan);
-      toast.success(`Upgraded to ${plan.charAt(0).toUpperCase() + plan.slice(1)} plan! Welcome to the next level. 🚀`);
-      navigate("/app/dashboard");
-    }, 1500);
+    void setPlan(plan)
+      .then(() => {
+        toast.success(`Upgraded to ${plan.charAt(0).toUpperCase() + plan.slice(1)} plan! Welcome to the next level. 🚀`);
+        navigate("/app/dashboard");
+      })
+      .catch((err) => toast.error(err instanceof Error ? err.message : 'Failed to update plan'))
+      .finally(() => setLoading(null));
   };
 
   return (
@@ -137,6 +160,12 @@ export default function PricingPage() {
             {PLANS.map(plan => {
               const isCurrent = currentPlan === plan.id;
               const isLoading = loading === plan.id;
+              const isDowngrade = plan.id === "free" && currentPlan !== "free";
+              const ctaLabel = isCurrent
+                ? "Current Plan"
+                : isDowngrade
+                  ? "Downgrade to Free"
+                  : plan.cta;
               return (
                 <div
                   key={plan.id}
@@ -199,7 +228,7 @@ export default function PricingPage() {
 
                   {/* CTA */}
                   <button
-                    onClick={() => handleUpgrade(plan.id)}
+                    onClick={() => handlePlanAction(plan.id)}
                     disabled={isCurrent || isLoading}
                     className="w-full py-2.5 rounded-xl text-[13px] font-black transition-all inline-flex items-center justify-center gap-2"
                     style={{
@@ -217,8 +246,8 @@ export default function PricingPage() {
                       "Current Plan"
                     ) : (
                       <span className="flex items-center gap-1.5">
-                        {plan.cta}
-                        <ArrowRight className="w-3.5 h-3.5" />
+                        {ctaLabel}
+                        {!isDowngrade && <ArrowRight className="w-3.5 h-3.5" />}
                       </span>
                     )}
                   </button>

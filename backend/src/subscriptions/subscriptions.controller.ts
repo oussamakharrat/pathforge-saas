@@ -1,4 +1,4 @@
-import { Controller, Get, Patch, Body } from '@nestjs/common';
+import { Controller, Get, Patch, Post, Body } from '@nestjs/common';
 import { SubscriptionsService } from './subscriptions.service';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { UpdateSubscriptionDto } from './dto/subscriptions.dto';
@@ -18,5 +18,10 @@ export class SubscriptionsController {
     @Body() dto: UpdateSubscriptionDto,
   ) {
     return this.service.update(user.id, dto);
+  }
+
+  @Post('me/cancel')
+  cancel(@CurrentUser() user: { id: string }) {
+    return this.service.cancel(user.id);
   }
 }
