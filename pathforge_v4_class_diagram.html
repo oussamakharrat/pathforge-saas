@@ -1,0 +1,502 @@
+
+<style>
+#diagram { width: 100%; overflow-x: auto; }
+#diagram svg { min-width: 900px; font-family: var(--font-sans) !important; }
+
+#legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 16px 0 8px;
+  padding: 0 4px;
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+.legend-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+.note {
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+  margin: 4px 0 0;
+  padding: 0 4px;
+}
+</style>
+
+<div id="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:#534AB7"></div>Full aggregate root</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#0F6E56"></div>Thin aggregate root</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#185FA5"></div>Child entity</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#854F0B"></div>Value object</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#3B6D11"></div>Reference data</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#5F5E5A"></div>Read model</div>
+</div>
+
+<div id="diagram"></div>
+
+<p class="note">Solid diamond (◆) = composition within aggregate boundary · Dashed (╌╌▷) = ID-only reference across boundary</p>
+
+<script type="module">
+import mermaid from 'https://esm.sh/mermaid@11/dist/mermaid.esm.min.mjs';
+const dark = matchMedia('(prefers-color-scheme: dark)').matches;
+await document.fonts.ready;
+
+mermaid.initialize({
+  startOnLoad: false,
+  theme: 'base',
+  fontFamily: '"Anthropic Sans", sans-serif',
+  themeVariables: {
+    darkMode: dark,
+    fontSize: '12px',
+    fontFamily: '"Anthropic Sans", sans-serif',
+    lineColor: dark ? '#9c9a92' : '#73726c',
+    textColor: dark ? '#c2c0b6' : '#3d3d3a',
+    primaryColor: dark ? '#3C3489' : '#EEEDFE',
+    primaryTextColor: dark ? '#CECBF6' : '#26215C',
+    primaryBorderColor: dark ? '#7F77DD' : '#534AB7',
+    secondaryColor: dark ? '#085041' : '#E1F5EE',
+    secondaryTextColor: dark ? '#9FE1CB' : '#04342C',
+    secondaryBorderColor: dark ? '#1D9E75' : '#0F6E56',
+    tertiaryColor: dark ? '#0C447C' : '#E6F1FB',
+    tertiaryTextColor: dark ? '#B5D4F4' : '#042C53',
+    tertiaryBorderColor: dark ? '#378ADD' : '#185FA5',
+    noteBkgColor: dark ? '#412402' : '#FAEEDA',
+    noteTextColor: dark ? '#FAC775' : '#412402',
+    noteBorderColor: dark ? '#BA7517' : '#854F0B',
+    edgeLabelBackground: dark ? '#2C2C2A' : '#F1EFE8',
+    clusterBkg: dark ? '#2C2C2A' : '#F1EFE8',
+    clusterBorder: dark ? '#444441' : '#B4B2A9',
+    classText: dark ? '#c2c0b6' : '#3d3d3a',
+  },
+  classDiagram: {
+    diagramPadding: 20,
+  }
+});
+
+const diagram = `classDiagram
+  %% ── IDENTITY & PROFILE ──────────────────────────────────────
+  namespace IdentityProfile {
+    class User {
+      <<Aggregate Root>>
+      +id: string
+      +authProviderId: string
+      +email: string
+      +displayName: string
+      +streakDays: number
+      +longestStreak: number
+      +isActive: boolean
+    }
+    class CareerProfile {
+      <<Child Entity>>
+      +currentRole: string
+      +targetRole: string
+      +experienceLevel: string
+      +bio: string
+      +location: string
+      +preferredIndustries: string[]
+      +onboardingComplete: boolean
+    }
+    class UserSkill {
+      <<Child Entity>>
+      +skillCatalogId: string
+      +currentLevel: number
+      +targetLevel: number
+      +verificationStatus: string
+      +lastAssessed: string
+    }
+    class UserAchievement {
+      <<Child Entity>>
+      +achievementDefinitionId: string
+      +unlockedAt: string
+      +seen: boolean
+    }
+    class UserBadge {
+      <<Child Entity>>
+      +badgeDefinitionId: string
+      +progress: number [0-100]
+      +earnedAt: string
+      +seen: boolean
+    }
+  }
+
+  %% ── BILLING ──────────────────────────────────────────────────
+  namespace Billing {
+    class Subscription {
+      <<Aggregate Root>>
+      +id: string
+      +userId: string
+      +plan: string
+      +status: string
+      +billingCycle: string
+      +stripeCustomerId: string
+      +currentPeriodEnd: string
+    }
+  }
+
+  %% ── CAREER PLANNING ──────────────────────────────────────────
+  namespace CareerPlanning {
+    class Goal {
+      <<Aggregate Root>>
+      +id: string
+      +userId: string
+      +title: string
+      +targetDate: string
+      +status: string
+      +progress: number [0-100]
+    }
+    class Milestone {
+      <<Value Object>>
+      +id: string [client-side only]
+      +title: string
+      +completed: boolean
+      +order: number
+      stored as JSONB array
+    }
+  }
+
+  %% ── LEARNING ─────────────────────────────────────────────────
+  namespace Learning {
+    class LearningPlan {
+      <<Aggregate Root>>
+      +id: string
+      +userId: string
+      +goalId: string [optional]
+      +title: string
+      +status: string
+      +progress: number [0-100]
+    }
+    class LearningItem {
+      <<Child Entity>>
+      +id: string
+      +title: string
+      +completed: boolean
+      +order: number
+      +tag: string
+      +skillBoostAmount: number
+    }
+  }
+
+  %% ── PORTFOLIO ────────────────────────────────────────────────
+  namespace Portfolio {
+    class PortfolioProject {
+      <<Aggregate Root>>
+      +id: string
+      +userId: string
+      +title: string
+      +technologies: string[]
+      +repoUrl: string
+      +status: string
+      +featured: boolean [max 3 per user]
+    }
+  }
+
+  %% ── JOB TRACKING ─────────────────────────────────────────────
+  namespace JobTracking {
+    class JobPosting {
+      <<Thin Aggregate Root>>
+      +id: string
+      +userId: string
+      +company: string
+      +title: string
+      +salaryRange: SalaryRange
+      +matchScore: number
+      no behavioral invariants
+    }
+    class Application {
+      <<Aggregate Root>>
+      +id: string
+      +userId: string
+      +jobId: string
+      +status: string
+      +goalId: string [optional]
+      status follows pipeline order
+    }
+    class Interview {
+      <<Child Entity>>
+      +id: string
+      +type: string
+      +status: string
+      +score: number [0-100]
+      +isMock: boolean
+      +date: string
+    }
+    class InterviewAnswer {
+      <<Value Object>>
+      +question: string
+      +answer: string
+      +score: number
+      +feedback: string
+      +order: number
+      stored as JSONB array
+    }
+    class Offer {
+      <<Child Entity>>
+      +id: string
+      +company: string
+      +baseSalary: Money
+      +equity: string
+      +status: string
+      +decisionDeadline: string
+    }
+  }
+
+  %% ── COMPENSATION ─────────────────────────────────────────────
+  namespace Compensation {
+    class Negotiation {
+      <<Aggregate Root>>
+      +id: string
+      +userId: string
+      +offerId: string
+      +offeredSalary: Money
+      +targetSalary: Money
+      +finalSalary: Money [on accept]
+      +status: string
+      +talkingPoints: string[]
+    }
+  }
+
+  %% ── RESUME ───────────────────────────────────────────────────
+  namespace ResumeContext {
+    class Resume {
+      <<Aggregate Root>>
+      +id: string
+      +userId: string
+      +version: number [auto-increment]
+      +atsScore: number [0-100]
+      +detectedKeywords: string[]
+      +missingKeywords: string[]
+    }
+    class ResumeSection {
+      <<Child Entity>>
+      +id: string
+      +type: string
+      +title: string
+      +content: string
+      +order: number
+    }
+  }
+
+  %% ── AI COACH ─────────────────────────────────────────────────
+  namespace AICoach {
+    class AIConversation {
+      <<Aggregate Root>>
+      +id: string
+      +userId: string
+      +title: string
+      +context: string
+      +messageCount: number [synced]
+    }
+    class AIMessage {
+      <<Child Entity>>
+      +id: string
+      +role: string
+      +content: string
+      +tokensUsed: number
+      +order: number [sequential]
+    }
+  }
+
+  %% ── COMMUNITY ────────────────────────────────────────────────
+  namespace Community {
+    class CommunityPost {
+      <<Aggregate Root>>
+      +id: string
+      +userId: string
+      +title: string
+      +body: string
+      +tags: string[]
+      +commentCount: number [denorm]
+      +reactionCount: number [denorm]
+      +isPinned: boolean
+    }
+    class CommunityComment {
+      <<Child Entity>>
+      +id: string
+      +userId: string
+      +body: string
+      +parentCommentId: string [optional]
+    }
+    class CommunityReaction {
+      <<Child Entity>>
+      +id: string
+      +userId: string
+      +type: string
+      UNIQUE(postId, userId, type)
+    }
+  }
+
+  %% ── NOTIFICATIONS ────────────────────────────────────────────
+  namespace Notifications {
+    class Notification {
+      <<Thin Aggregate Root>>
+      +id: string
+      +userId: string
+      +type: string
+      +title: string
+      +read: boolean
+      +readAt: string
+      +sourceEntityId: string
+      partitioned by month
+    }
+  }
+
+  %% ── REFERENCE DATA ───────────────────────────────────────────
+  namespace ReferenceData {
+    class SkillCatalog {
+      <<Reference Data>>
+      +id: string
+      +name: string [unique]
+      +category: string
+      +marketDemand: string
+      platform-seeded, cached
+    }
+    class AchievementDefinition {
+      <<Reference Data>>
+      +id: string
+      +name: string [unique]
+      +icon: string
+      +description: string
+      +criteria: string
+      platform-seeded, cached
+    }
+    class BadgeDefinition {
+      <<Reference Data>>
+      +id: string
+      +name: string [unique]
+      +icon: string
+      +rarity: string
+      +requirements: string
+      platform-seeded, cached
+    }
+  }
+
+  %% ── VALUE OBJECTS (shared) ───────────────────────────────────
+  namespace SharedKernel {
+    class Money {
+      <<Value Object>>
+      +amount: number
+      +currency: string
+      fully immutable
+    }
+    class SalaryRange {
+      <<Value Object>>
+      +min: Money
+      +max: Money
+      fully immutable
+    }
+  }
+
+  %% ── READ MODELS ──────────────────────────────────────────────
+  namespace ReadModels {
+    class CareerMetrics {
+      <<Read Model>>
+      +userId: string
+      +overallScore: number
+      +skillsScore: number
+      +applicationScore: number
+      +resumeScore: number
+      +goalScore: number
+      eventually consistent
+    }
+    class ProgressDashboard {
+      <<Read Model>>
+      +userId: string
+      +activeGoals: number
+      +activePlans: number
+      +ongoingApplications: number
+      +upcomingInterviews: number
+      +unreadNotifications: number
+      eventually consistent
+    }
+    class JobMatchInsights {
+      <<Read Model>>
+      +userId: string
+      +jobId: string
+      +matchPercentage: number
+      +missingSkillIds: string[]
+      eventually consistent
+    }
+    class InterviewReadiness {
+      <<Read Model>>
+      +userId: string
+      +role: string
+      +readinessScore: number
+      +interviewCount: number
+      eventually consistent
+    }
+  }
+
+  %% ── COMPOSITION: within aggregate boundary ───────────────────
+  User "1" *-- "1" CareerProfile : owns
+  User "1" *-- "0..*" UserSkill : owns
+  User "1" *-- "0..*" UserAchievement : owns
+  User "1" *-- "0..*" UserBadge : owns
+
+  Goal "1" *-- "0..*" Milestone : owns (JSONB)
+
+  LearningPlan "1" *-- "0..*" LearningItem : owns
+
+  Application "1" *-- "0..*" Interview : owns
+  Application "1" *-- "0..1" Offer : owns
+  Interview "1" *-- "0..*" InterviewAnswer : owns (JSONB)
+
+  Resume "1" *-- "0..*" ResumeSection : owns
+
+  AIConversation "1" *-- "0..*" AIMessage : owns
+
+  CommunityPost "1" *-- "0..*" CommunityComment : owns
+  CommunityPost "1" *-- "0..*" CommunityReaction : owns
+
+  %% ── REFERENCES: across aggregate boundary (ID-only) ──────────
+  User "1" ..> "0..1" Subscription : userId
+  User "1" ..> "0..*" Goal : userId
+  User "1" ..> "0..*" LearningPlan : userId
+  User "1" ..> "0..*" PortfolioProject : userId
+  User "1" ..> "0..*" JobPosting : userId
+  User "1" ..> "0..*" Application : userId
+  User "1" ..> "0..*" Resume : userId
+  User "1" ..> "0..*" AIConversation : userId
+  User "1" ..> "0..*" CommunityPost : userId
+  User "1" ..> "0..*" Notification : userId
+
+  LearningPlan "0..*" ..> "0..1" Goal : goalId (optional)
+  Application "0..*" ..> "0..1" Goal : goalId (optional)
+  Application "0..*" ..> "1" JobPosting : jobId
+  Offer "0..1" ..> "0..1" Negotiation : negotiationId
+
+  %% ── REFERENCE DATA lookups ────────────────────────────────────
+  UserSkill "0..*" ..> "1" SkillCatalog : skillCatalogId
+  UserAchievement "0..*" ..> "1" AchievementDefinition : definitionId
+  UserBadge "0..*" ..> "1" BadgeDefinition : definitionId
+
+  Goal "0..*" ..> "0..*" SkillCatalog : goal_skills junction
+  LearningPlan "0..*" ..> "0..*" SkillCatalog : plan_skills junction
+  PortfolioProject "0..*" ..> "0..*" SkillCatalog : project_skills junction
+  JobPosting "0..*" ..> "0..*" SkillCatalog : job_skills junction
+  Resume "0..*" ..> "0..*" SkillCatalog : ats refs only
+
+  %% ── VALUE OBJECT usage ───────────────────────────────────────
+  Offer ..> Money : baseSalary
+  Negotiation ..> Money : salaries
+  JobPosting ..> SalaryRange : salaryRange
+  SalaryRange ..> Money : min / max
+`;
+
+const { svg } = await mermaid.render('class-svg', diagram);
+document.getElementById('diagram').innerHTML = svg;
+
+const diagramEl = document.getElementById('diagram');
+const svgEl = diagramEl.querySelector('svg');
+if (svgEl) {
+  svgEl.style.maxWidth = '100%';
+  svgEl.style.height = 'auto';
+}
+</script>

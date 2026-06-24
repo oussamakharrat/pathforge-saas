@@ -1,0 +1,248 @@
+import type { Mission } from "./types";
+
+export const MISSIONS: Mission[] = [
+  // ── Learning ──
+  {
+    id: "first-step",
+    title: "First Step",
+    description: "Complete your first learning step",
+    icon: "📘",
+    rarity: "bronze",
+    category: "learning",
+    requirement: (d) => d.learningSteps.filter(s => s.done).length >= 1,
+    progress: (d) => ({ current: Math.min(d.learningSteps.filter(s => s.done).length, 1), target: 1 }),
+  },
+  {
+    id: "halfway-there",
+    title: "Halfway There",
+    description: "Complete 50% of your learning plan",
+    icon: "📚",
+    rarity: "silver",
+    category: "learning",
+    requirement: (d) => d.learningSteps.length > 0 && d.learningSteps.filter(s => s.done).length / d.learningSteps.length >= 0.5,
+    progress: (d) => ({ current: Math.min(d.learningSteps.filter(s => s.done).length, Math.ceil(d.learningSteps.length * 0.5)), target: Math.max(Math.ceil(d.learningSteps.length * 0.5), 1) }),
+  },
+  {
+    id: "learning-complete",
+    title: "Knowledge Seeker",
+    description: "Complete all learning steps in your plan",
+    icon: "🎓",
+    rarity: "gold",
+    category: "learning",
+    requirement: (d) => d.learningSteps.length > 0 && d.learningSteps.every(s => s.done),
+    progress: (d) => ({ current: d.learningSteps.filter(s => s.done).length, target: d.learningSteps.length }),
+  },
+  {
+    id: "quiz-ace",
+    title: "Quiz Ace",
+    description: "Score 100% on any skill quiz",
+    icon: "💯",
+    rarity: "silver",
+    category: "learning",
+    requirement: (d) => d.quizResults.some(q => q.pct === 100),
+    progress: (d) => ({ current: d.quizResults.filter(q => q.pct === 100).length, target: 1 }),
+  },
+  {
+    id: "quiz-master",
+    title: "Quiz Master",
+    description: "Score 90%+ on 3 different skill quizzes",
+    icon: "🧠",
+    rarity: "gold",
+    category: "learning",
+    requirement: (d) => {
+      const highScores = new Set(d.quizResults.filter(q => q.pct >= 90).map(q => q.skillName));
+      return highScores.size >= 3;
+    },
+    progress: (d) => {
+      const highScores = new Set(d.quizResults.filter(q => q.pct >= 90).map(q => q.skillName));
+      return { current: Math.min(highScores.size, 3), target: 3 };
+    },
+  },
+
+  // ── Skills ──
+  {
+    id: "skill-collector",
+    title: "Skill Collector",
+    description: "Add 5 skills to your profile",
+    icon: "🔧",
+    rarity: "bronze",
+    category: "skills",
+    requirement: (d) => d.skills.length >= 5,
+    progress: (d) => ({ current: Math.min(d.skills.length, 5), target: 5 }),
+  },
+  {
+    id: "skill-variety",
+    title: "Well-Rounded",
+    description: "Have skills in 4 different categories",
+    icon: "🌈",
+    rarity: "silver",
+    category: "skills",
+    requirement: (d) => new Set(d.skills.map(s => s.cat)).size >= 4,
+    progress: (d) => ({ current: Math.min(new Set(d.skills.map(s => s.cat)).size, 4), target: 4 }),
+  },
+  {
+    id: "advanced-master",
+    title: "Advanced Master",
+    description: "Reach Advanced level in 3 skills",
+    icon: "⭐",
+    rarity: "gold",
+    category: "skills",
+    requirement: (d) => d.skills.filter(s => s.level === "Advanced").length >= 3,
+    progress: (d) => ({ current: Math.min(d.skills.filter(s => s.level === "Advanced").length, 3), target: 3 }),
+  },
+  {
+    id: "skill-boost",
+    title: "Skill Booster",
+    description: "Improve any skill by 10+ points through learning",
+    icon: "📈",
+    rarity: "silver",
+    category: "skills",
+    requirement: (d) => false, // Tracked separately via delta
+    progress: () => ({ current: 0, target: 1 }),
+  },
+
+  // ── Jobs ──
+  {
+    id: "first-application",
+    title: "Foot in the Door",
+    description: "Track your first job application",
+    icon: "📋",
+    rarity: "bronze",
+    category: "jobs",
+    requirement: (d) => d.outcomes.totalApplications >= 1,
+    progress: (d) => ({ current: Math.min(d.outcomes.totalApplications, 1), target: 1 }),
+  },
+  {
+    id: "active-seeker",
+    title: "Active Seeker",
+    description: "Apply to 10 jobs",
+    icon: "🎯",
+    rarity: "silver",
+    category: "jobs",
+    requirement: (d) => d.outcomes.totalApplications >= 10,
+    progress: (d) => ({ current: Math.min(d.outcomes.totalApplications, 10), target: 10 }),
+  },
+  {
+    id: "interview-ready",
+    title: "Interview Ready",
+    description: "Get your first interview",
+    icon: "🤝",
+    rarity: "silver",
+    category: "jobs",
+    requirement: (d) => d.outcomes.totalInterviews >= 1,
+    progress: (d) => ({ current: Math.min(d.outcomes.totalInterviews, 1), target: 1 }),
+  },
+  {
+    id: "offer-secured",
+    title: "Offer Secured",
+    description: "Receive your first job offer",
+    icon: "💼",
+    rarity: "gold",
+    category: "jobs",
+    requirement: (d) => d.outcomes.totalOffers >= 1,
+    progress: (d) => ({ current: Math.min(d.outcomes.totalOffers, 1), target: 1 }),
+  },
+  {
+    id: "serial-negotiator",
+    title: "Serial Negotiator",
+    description: "Complete 3 salary negotiations",
+    icon: "💎",
+    rarity: "platinum",
+    category: "jobs",
+    requirement: (d) => d.outcomes.negotiationsCompleted >= 3,
+    progress: (d) => ({ current: Math.min(d.outcomes.negotiationsCompleted, 3), target: 3 }),
+  },
+
+  // ── Streak ──
+  {
+    id: "streak-3",
+    title: "Getting Started",
+    description: "Log in for 3 consecutive days",
+    icon: "🔥",
+    rarity: "bronze",
+    category: "streak",
+    requirement: (d) => d.streakDays >= 3,
+    progress: (d) => ({ current: Math.min(d.streakDays, 3), target: 3 }),
+  },
+  {
+    id: "streak-7",
+    title: "Week Warrior",
+    description: "Log in for 7 consecutive days",
+    icon: "🔥",
+    rarity: "silver",
+    category: "streak",
+    requirement: (d) => d.streakDays >= 7,
+    progress: (d) => ({ current: Math.min(d.streakDays, 7), target: 7 }),
+  },
+  {
+    id: "streak-30",
+    title: "Monthly Champion",
+    description: "Log in for 30 consecutive days",
+    icon: "🔥",
+    rarity: "platinum",
+    category: "streak",
+    requirement: (d) => d.streakDays >= 30,
+    progress: (d) => ({ current: Math.min(d.streakDays, 30), target: 30 }),
+  },
+
+  // ── Social ──
+  {
+    id: "community-member",
+    title: "Community Member",
+    description: "Join a community discussion",
+    icon: "👋",
+    rarity: "bronze",
+    category: "social",
+    requirement: (d) => false,
+    progress: () => ({ current: 0, target: 1 }),
+  },
+
+  // ── Growth ──
+  {
+    id: "first-goal",
+    title: "Goal Setter",
+    description: "Create your first career goal",
+    icon: "🎯",
+    rarity: "bronze",
+    category: "growth",
+    requirement: (d) => d.goals.length >= 1,
+    progress: (d) => ({ current: Math.min(d.goals.length, 1), target: 1 }),
+  },
+  {
+    id: "mock-interview-first",
+    title: "Mock Ready",
+    description: "Complete your first mock interview",
+    icon: "🎤",
+    rarity: "silver",
+    category: "growth",
+    requirement: (d) => d.outcomes.interviewsCompleted >= 1,
+    progress: (d) => ({ current: Math.min(d.outcomes.interviewsCompleted, 1), target: 1 }),
+  },
+  {
+    id: "service-user",
+    title: "Service Explorer",
+    description: "Purchase your first premium service",
+    icon: "✨",
+    rarity: "gold",
+    category: "growth",
+    requirement: (d) => d.purchasedServices.length >= 1,
+    progress: (d) => ({ current: Math.min(d.purchasedServices.length, 1), target: 1 }),
+  },
+  {
+    id: "career-milestone-50",
+    title: "On the Rise",
+    description: "Reach a Career Score of 50+",
+    icon: "🏆",
+    rarity: "gold",
+    category: "growth",
+    requirement: (d) => false, // Computed externally from careerScore
+    progress: () => ({ current: 0, target: 50 }),
+  },
+];
+
+export const RARITY_CONFIG: Record<string, { label: string; color: string; bg: string; ring: string }> = {
+  bronze:  { label: "Bronze",  color: "#CD7F32", bg: "rgba(205,127,50,0.1)",  ring: "rgba(205,127,50,0.3)" },
+  silver:  { label: "Silver",  color: "#9CA3AF", bg: "rgba(156,163,175,0.1)", ring: "rgba(156,163,175,0.3)" },
+  gold:    { label: "Gold",    color: "#F59E0B", bg: "rgba(245,158,11,0.12)", ring: "rgba(245,158,11,0.3)" },
+  platinum:{ label: "Platinum",color: "#8B5CF6", bg: "rgba(139,92,246,0.12)", ring: "rgba(139,92,246,0.3)" },
+};

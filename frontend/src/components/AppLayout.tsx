@@ -1,0 +1,100 @@
+'use client';
+
+import { useState, useEffect, type ReactNode } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
+import { AppSidebar } from '@/components/AppSidebar';
+import { AvatarDropdown } from '@/components/AvatarDropdown';
+import { MobileNav } from '@/components/MobileNav';
+import { useUpgrade } from '@/contexts/UpgradeContext';
+import { NotificationBell } from '@/components/NotificationBell';
+import { Menu } from 'lucide-react';
+import { FLAME, CARBON, NAV_ITEMS } from '@/lib/constants';
+import { Navigate } from '@/lib/router';
+import { PageLoading } from '@/components/PageLoading';
+
+const PLAN_COLORS: Record<string, string> = {
+  free: '#6B7280',
+  pro: '#10B981',
+  premium: '#8B5CF6',
+};
+
+export function AppLayout({ children }: { children: ReactNode }) {
+  const { authed, isLoading, plan, planLabel, canAccess } = useAuth();
+  const { requestUpgrade } = useUpgrade();
+  const pathname = usePathname() ?? '/app/dashboard';
+  const router = useRouter();
+  const [sidebarExpanded, setSidebarExpanded] = useState(false);
+
+  useEffect(() => {
+    setSidebarExpanded(window.innerWidth >= 768);
+  }, []);
+
+  const currentPage = pathname.split('/').pop() || 'dashboard';
+  const pageTitle =
+    NAV_ITEMS.find((item) => item.id === currentPage)?.label ??
+    (currentPage === 'settings' ? 'Settings' : 'Dashboard');
+
+  const [checkedAccess, setCheckedAccess] = useState(false);
+  useEffect(() => {
+    if (!checkedAccess && !canAccess(currentPage)) {
+      const navItem = NAV_ITEMS.find((item) => item.id === currentPage);
+      requestUpgrade(currentPage, navItem?.label ?? currentPage);
+    }
+    setCheckedAccess(true);
+  }, [currentPage, canAccess, requestUpgrade, checkedAccess]);
+
+  useEffect(() => {
+    if (window.innerWidth < 768) setSidebarExpanded(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!isLoading && !authed) router.replace('/login');
+  }, [authed, isLoading, router]);
+
+  if (isLoading) return <PageLoading />;
+  if (!authed) return null;
+
+  const showDashboardFallback = !canAccess(currentPage) && checkedAccess;
+
+  return (
+    <div className="flex min-h-screen bg-background">
+      <AppSidebar expanded={sidebarExpanded} setExpanded={setSidebarExpanded} />
+      <div
+        className="flex-1 flex flex-col transition-all duration-200 ease-in-out"
+        style={{ marginLeft: sidebarExpanded ? 256 : 56 }}
+      >
+        <header className="h-12 border-b border-border flex items-center justify-between px-3 gap-2 bg-card flex-shrink-0">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setSidebarExpanded(!sidebarExpanded)}
+              className="w-8 h-8 rounded-lg flex md:hidden items-center justify-center hover:bg-secondary transition-all"
+              style={{ color: CARBON }}
+              aria-label="Toggle sidebar"
+            >
+              <Menu className="w-4 h-4" />
+            </button>
+            <h1 className="text-[13px] font-semibold tracking-tight" style={{ color: CARBON }}>
+              {pageTitle}
+            </h1>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground font-medium">
+              <span
+                className="w-1.5 h-1.5 rounded-full animate-pulse"
+                style={{ backgroundColor: PLAN_COLORS[plan] }}
+              />
+              {planLabel} Plan
+            </div>
+            <NotificationBell />
+            <AvatarDropdown />
+          </div>
+        </header>
+        <main className="flex-1 overflow-y-auto p-3 md:p-4 lg:p-5 pb-20 md:pb-5">
+          {showDashboardFallback ? <Navigate to="/app/dashboard" replace /> : children}
+        </main>
+        <MobileNav />
+      </div>
+    </div>
+  );
+}

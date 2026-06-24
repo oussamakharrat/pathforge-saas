@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PathForge v4 - Class Diagram</title>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+  <style>
+    body { margin: 0; padding: 32px; background: #0d1117; color: #c9d1d9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, sans-serif; }
+    h1 { text-align: center; color: #58a6ff; font-size: 24px; margin-bottom: 8px; }
+    .subtitle { text-align: center; color: #8b949e; font-size: 14px; margin-bottom: 32px; }
+    #diagram { background: #0d1117; padding: 24px; border-radius: 12px; border: 1px solid #30363d; overflow-x: auto; }
+    #diagram svg { margin: 0 auto; display: block; }
+    .legend { max-width: 800px; margin: 32px auto; padding: 16px 24px; background: #161b22; border-radius: 8px; border: 1px solid #30363d; font-size: 13px; line-height: 1.6; }
+    .legend h3 { color: #58a6ff; margin-top: 0; }
+    .legend code { background: #0d1117; padding: 2px 6px; border-radius: 4px; color: #f0883e; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; margin: 1px 2px; }
+    .badge-root { background: #1f6feb33; color: #58a6ff; border: 1px solid #1f6feb66; }
+    .badge-child { background: #23863633; color: #3fb950; border: 1px solid #23863666; }
+    .badge-vo { background: #9e6a0333; color: #d29922; border: 1px solid #9e6a0366; }
+    .badge-ref { background: #8b5cf633; color: #a78bfa; border: 1px solid #8b5cf666; }
+  </style>
+</head>
+<body>
+
+  <h1>PathForge v4 - Domain Class Diagram</h1>
+  <p class="subtitle">12 Aggregate Roots | 11 Child Entities | 3 Reference Data | 4 Value Objects</p>
+
+  <div class="legend">
+    <h3>Visual Guide</h3>
+    <p>
+      <span class="badge badge-root">Aggregate Root</span> Owns children, enforces invariants<br/>
+      <span class="badge badge-child">Child Entity</span> Within parent aggregate, no independent lifecycle<br/>
+      <span class="badge badge-vo">Value Object</span> Immutable, compared by value, stored as JSONB<br/>
+      <span class="badge badge-ref">Reference Data</span> Platform-seeded, shared across aggregates<br/><br/>
+      <strong>Composition</strong> <code>◆--&gt;</code> Solid diamond = within aggregate boundary<br/>
+      <strong>Reference</strong> <code>..&gt;</code> Dashed line = cross-aggregate by ID only
+    </p>
+  </div>
+
+  <pre id="diagram" style="display:none;">
+classDiagram
+    class User {
+        &lt;&lt;Aggregate Root&gt;&gt;
+        +id: string
+        +authProviderId: string
+        +email: string
+        +displayName: string
+        +streakDays: number
+        +longestStreak: number
+        +isActive: boolean
+        #profile: CareerProfile
+        #skills: UserSkill[]
+        #achievements: UserAchievement[]
+        #badges: UserBadge[]
+    }
+
+    class CareerProfile {
+        &lt;&lt;Child Entity&gt;&gt;
+        +currentRole: string
+        +targetRole: string
+        +experienceLevel: string
+        +bio: string
+        +location: string
+        +avatarUrl: string
+        +preferredIndustries: string[]
+        +onboardingComplete: boolean
+    }
+
+    class UserSkill {
+        &lt;&lt;Child Entity&gt;&gt;
+        +skillCatalogId: string
+        +currentLevel: number
+        +targetLevel: number
+        +verificationStatus: string
+        +lastAssessed: string
+    }
+
+    class UserAchievement {
+        &lt;&lt;Child Entity&gt;&gt;
+        +achievementDefinitionId: string
+        +unlockedAt: string
+        +seen: boolean
+    }
+
+    class UserBadge {
+        &lt;&lt;Child Entity&gt;&gt;
+        +badgeDefinitionId: string
+        +progress: number
+        +earnedAt: string
+        +seen: boolean
+    }
+
+    class Subscription {
+        &lt;&lt;Aggregate Root&gt;&gt;
+        +id: string
+        +userId: string
+        +plan: string
+        +status: string
+        +billingCycle: string
+        +stripeCustomerId: string
+        +currentPeriodEnd: string
+    }
+
+    class Goal {
+        &lt;&lt;Aggregate Root&gt;&gt;
+        +id: string
+        +userId: string
+        +title: string
+        +description: string
+        +targetDate: string
+        +status: string
+        +careerPath: string
+        +progress: number
+        #milestones: Milestone[]
+    }
+
+    class Milestone {
+        &lt;&lt;Value Object&gt;&gt;
+        +id: string
+        +title: string
+        +description: string
+        +completed: boolean
+        +order: number
+    }
+
+    class LearningPlan {
+        &lt;&lt;Aggregate Root&gt;&gt;
+        +id: string
+        +userId: string
+        +title: string
+        +description: string
+        +goalId: string
+        +progress: number
+        +status: string
+        +expectedCareerImpact: number
+        #items: LearningItem[]
+    }
+
+    class LearningItem {
+        &lt;&lt;Child Entity&gt;&gt;
+        +id: string
+        +title: string
+        +description: string
+        +completed: boolean
+        +order: number
+        +tag: string
+        +skillBoostAmount: number
+    }
+
+    class PortfolioProject {
+        &lt;&lt;Aggregate Root&gt;&gt;
+        +id: string
+        +userId: string
+        +title: string
+        +description: string
+        +technologies: string[]
+        +repoUrl: string
+        +demoUrl: string
+        +imageUrl: string
+        +status: string
+        +featured: boolean
+    }
+
+    class JobPosting {
+        &lt;&lt;Thin Aggregate Root&gt;&gt;
+        +id: string
+        +userId: string
+        +company: string
+        +title: string
+        +description: string
+        +location: string
+        +url: string
+        +salaryRange: SalaryRange
+        +matchScore: number
+    }
+
+    class Application {
+        &lt;&lt;Aggregate Root&gt;&gt;
+        +id: string
+        +userId: string
+        +jobId: string
+        +status: string
+        +appliedDate: string
+        +notes: string
+        +goalId: string
+        #interviews: Interview[]
+        #offers: Offer[]
+    }
+
+    class Interview {
+        &lt;&lt;Child Entity&gt;&gt;
+        +id: string
+        +type: string
+        +status: string
+        +company: string
+        +role: string
+        +score: number
+        +feedback: string
+        +isMock: boolean
+        +date: string
+        #answers: InterviewAnswer[]
+    }
+
+    class InterviewAnswer {
+        &lt;&lt;Value Object&gt;&gt;
+        +question: string
+        +answer: string
+        +score: number
+        +feedback: string
+        +order: number
+    }
+
+    class Offer {
+        &lt;&lt;Child Entity&gt;&gt;
+        +id: string
+        +company: string
+        +role: string
+        +baseSalary: Money
+        +equity: string
+        +bonus: string
+        +benefits: string[]
+        +status: string
+        +receivedDate: string
+        +decisionDeadline: string
+        +negotiationId: string
+    }
+
+    class Negotiation {
+        &lt;&lt;Aggregate Root&gt;&gt;
+        +id: string
+        +userId: string
+        +offerId: string
+        +offeredSalary: Money
+        +targetSalary: Money
+        +finalSalary: Money
+        +status: string
+        +strategy: string
+        +talkingPoints: string[]
+    }
+
+    class Resume {
+        &lt;&lt;Aggregate Root&gt;&gt;
+        +id: string
+        +userId: string
+        +version: number
+        +title: string
+        +atsScore: number
+        +detectedKeywords: string[]
+        +missingKeywords: string[]
+        +suggestions: string[]
+        #sections: ResumeSection[]
+    }
+
+    class ResumeSection {
+        &lt;&lt;Child Entity&gt;&gt;
+        +id: string
+        +type: string
+        +title: string
+        +content: string
+        +order: number
+    }
+
+    class AIConversation {
+        &lt;&lt;Aggregate Root&gt;&gt;
+        +id: string
+        +userId: string
+        +title: string
+        +context: string
+        +messageCount: number
+        #messages: AIMessage[]
+    }
+
+    class AIMessage {
+        &lt;&lt;Child Entity&gt;&gt;
+        +id: string
+        +role: string
+        +content: string
+        +metadata: object
+        +tokensUsed: number
+        +order: number
+    }
+
+    class CommunityPost {
+        &lt;&lt;Aggregate Root&gt;&gt;
+        +id: string
+        +userId: string
+        +title: string
+        +body: string
+        +tags: string[]
+        +commentCount: number
+        +reactionCount: number
+        +isPinned: boolean
+        +isArchived: boolean
+        #comments: CommunityComment[]
+        #reactions: CommunityReaction[]
+    }
+
+    class CommunityComment {
+        &lt;&lt;Child Entity&gt;&gt;
+        +id: string
+        +body: string
+        +parentCommentId: string
+    }
+
+    class CommunityReaction {
+        &lt;&lt;Child Entity&gt;&gt;
+        +id: string
+        +postId: string
+        +type: string
+    }
+
+    class Notification {
+        &lt;&lt;Aggregate Root&gt;&gt;
+        +id: string
+        +userId: string
+        +type: string
+        +title: string
+        +message: string
+        +read: boolean
+        +sourceEntityType: string
+        +sourceEntityId: string
+        +link: string
+    }
+
+    class SkillCatalog {
+        &lt;&lt;Reference Data&gt;&gt;
+        +id: string
+        +name: string
+        +category: string
+        +marketDemand: string
+    }
+
+    class AchievementDefinition {
+        &lt;&lt;Reference Data&gt;&gt;
+        +id: string
+        +name: string
+        +icon: string
+        +description: string
+        +category: string
+        +criteria: string
+    }
+
+    class BadgeDefinition {
+        &lt;&lt;Reference Data&gt;&gt;
+        +id: string
+        +name: string
+        +icon: string
+        +description: string
+        +rarity: string
+        +category: string
+        +requirements: string
+    }
+
+    class Money {
+        &lt;&lt;Value Object&gt;&gt;
+        +amount: number
+        +currency: string
+    }
+
+    class SalaryRange {
+        &lt;&lt;Value Object&gt;&gt;
+        +min: Money
+        +max: Money
+    }
+
+    User "1" *--> "1" CareerProfile
+    User "1" *--> "*" UserSkill
+    User "1" *--> "*" UserAchievement
+    User "1" *--> "*" UserBadge
+
+    Goal "1" *--> "*" Milestone
+    LearningPlan "1" *--> "*" LearningItem
+
+    Application "1" *--> "*" Interview
+    Application "1" *--> "*" Offer
+    Interview "1" *--> "*" InterviewAnswer
+
+    Resume "1" *--> "*" ResumeSection
+    AIConversation "1" *--> "*" AIMessage
+    CommunityPost "1" *--> "*" CommunityComment
+    CommunityPost "1" *--> "*" CommunityReaction
+
+    User "1" ..> "0..1" Subscription
+    User "1" ..> "*" Goal
+    User "1" ..> "*" LearningPlan
+    User "1" ..> "*" PortfolioProject
+    User "1" ..> "*" JobPosting
+    User "1" ..> "*" Application
+    User "1" ..> "*" Negotiation
+    User "1" ..> "*" Resume
+    User "1" ..> "*" AIConversation
+    User "1" ..> "*" CommunityPost
+    User "1" ..> "*" Notification
+
+    Goal "1" ..> "*" LearningPlan
+    Goal "1" ..> "*" Application
+    JobPosting "1" ..> "*" Application
+    Offer "1" ..> "0..1" Negotiation
+
+    UserSkill "*" ..> "1" SkillCatalog
+    UserAchievement "*" ..> "1" AchievementDefinition
+    UserBadge "*" ..> "1" BadgeDefinition
+
+    Goal "*" ..> "*" SkillCatalog
+    LearningPlan "*" ..> "*" SkillCatalog
+    PortfolioProject "*" ..> "*" SkillCatalog
+    JobPosting "*" ..> "*" SkillCatalog
+    Resume "*" ..> "*" SkillCatalog
+</pre>
+
+  <div style="text-align:center; margin-top: 24px; color: #8b949e; font-size: 13px;">
+    <p>All relationships are by ID only - no cross-aggregate object references.<br/>
+    Composition (solid diamond) = within aggregate boundary | Dashed = eventual consistency</p>
+  </div>
+
+  <script>
+    mermaid.initialize({
+      theme: 'dark',
+      maxTextSize: 100000,
+      securityLevel: 'loose',
+      themeVariables: {
+        primaryColor: '#1f6feb',
+        primaryTextColor: '#c9d1d9',
+        primaryBorderColor: '#1f6feb',
+        lineColor: '#8b949e',
+        secondaryColor: '#238636',
+        tertiaryColor: '#0d1117',
+        background: '#0d1117',
+        mainBkg: '#161b22',
+        nodeBorder: '#30363d',
+        clusterBkg: '#0d1117',
+        clusterBorder: '#30363d',
+        titleColor: '#58a6ff',
+        edgeLabelBackground: '#161b22',
+        nodeTextColor: '#c9d1d9',
+      },
+    });
+
+    const diagramText = document.getElementById('diagram').textContent;
+
+    mermaid.render('mermaid-svg', diagramText).then(function(result) {
+      document.getElementById('diagram').outerHTML = result.svg;
+    }).catch(function(err) {
+      document.getElementById('diagram').outerHTML = '<div style="color: #f85149; padding: 20px;">Mermaid Error: ' + err.message + '</div>';
+    });
+  </script>
+</body>
+</html>

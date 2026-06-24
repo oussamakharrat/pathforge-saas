@@ -1,0 +1,583 @@
+================================================================================
+  PathForge v3 — Textual Class Diagram
+  8 Aggregate Roots · 13 Child Entities · 10 Consistency Boundaries
+================================================================================
+
+Legend:
+  [AR]  = Aggregate Root        owns children, enforces invariants
+  [CE]  = Child Entity          owned by parent aggregate
+  [VO]  = Value Object          immutable, stored as JSONB
+  [REF] = Reference Data        platform-seeded, shared
+  ───▶  = Composition (solid)   within aggregate boundary
+  ╌╌╌▶  = Association (dashed) cross-aggregate by ID
+  ~~~▶  = Many-to-Many          via junction table
+
+================================================================================
+  BOUNDARY 1 — USER AGGREGATE             Consistency: User row = lock root
+================================================================================
+
+  ┌────────────────────────────────────────────────────────────────────────┐
+  │ [AR] User                                                             │
+  ├────────────────────────────────────────────────────────────────────────┤
+  │ +id                  : string                                         │
+  │ +authProviderId      : string          [unique]                       │
+  │ +email               : string          [unique]                       │
+  │ +displayName         : string                                         │
+  │ +streakDays          : number                                          │
+  │ +longestStreak       : number                                          │
+  │ +isActive            : boolean        [soft delete flag]               │
+  │ +createdAt           : string         [ISO 8601]                      │
+  │ +lastLoginAt         : string         [ISO 8601]                      │
+  │ #profile             : CareerProfile  [1:1 child]                     │
+  │ #skills              : UserSkill[]    [0..* child]                    │
+  │ #achievements        : Achievement[]  [0..* child]                    │
+  │ #badges              : Badge[]        [0..* child]                    │
+  │ #portfolioProjects   : PortfolioProject[]  [0..* child]               │
+  └────────────────────────────────────────────────────────────────────────┘
+            │
+            │ ───▶ 1  CareerProfile
+            │ ───▶ *  UserSkill
+            │ ───▶ *  Achievement
+            │ ───▶ *  Badge
+            │ ───▶ *  PortfolioProject
+            │
+            │ ╌╌╌▶ 0..1  Subscription          (via userId)
+            │ ╌╌╌▶ *     Goal                  (via userId)
+            │ ╌╌╌▶ *     LearningPlan          (via userId)
+            │ ╌╌╌▶ *     Job                   (via userId)
+            │ ╌╌╌▶ *     Application           (via userId)
+            │ ╌╌╌▶ *     Resume                (via userId)
+            │ ╌╌╌▶ *     AIConversation        (via userId)
+            │ ╌╌╌▶ *     CommunityPost         (via userId)
+            │ ╌╌╌▶ *     Negotiation           (via userId)
+            │ ╌╌╌▶ *     Notification          (via userId, lazy/paginated)
+            │
+            ───▶ UserSkill ~~~▶ SkillCatalog   (via skillCatalogId+FK)
+
+  ┌────────────────────────────────────────────────────────────────────────┐
+  │ [CE] CareerProfile                    (1:1 with User)                 │
+  ├────────────────────────────────────────────────────────────────────────┤
+  │ +currentRole           : string                                        │
+  │ +targetRole            : string                                        │
+  │ +experienceLevel       : ExperienceLevel                               │
+  │ +educationLevel        : EducationLevel                                │
+  │ +bio                   : string                                        │
+  │ +location              : string                                        │
+  │ +avatarUrl             : string                                        │
+  │ +preferredIndustries   : string[]                                      │
+  │ +preferredWorkModels   : string[]                                      │
+  │ +preferredSalaryRange  : string                                        │
+  │ +openToRelocation      : boolean                                       │
+  │ +openToContract        : boolean                                       │
+  │ +shortTermObjective    : string                                        │
+  │ +longTermObjective     : string                                        │
+  │ +onboardingComplete    : boolean                                       │
+  └────────────────────────────────────────────────────────────────────────┘
+
+  ┌────────────────────────────────────────────────────────────────────────┐
+  │ [CE] UserSkill                         (references SkillCatalog)      │
+  ├────────────────────────────────────────────────────────────────────────┤
+  │ +skillCatalogId       : string          FK → SkillCatalog.id          │
+  │ +currentLevel         : number          0-100                         │
+  │ +targetLevel          : number          0-100                         │
+  │ +verificationStatus   : VerificationStatus                            │
+  │ +lastAssessed         : string          ISO 8601                      │
+  ├────────────────────────────────────────────────────────────────────────┤
+  │ UNIQUE(userId, skillCatalogId)                                        │
+  └────────────────────────────────────────────────────────────────────────┘
+
+  ┌────────────────────────────────────────────────────────────────────────┐
+  │ [CE] Achievement                       (unlock record, no lifecycle)  │
+  ├────────────────────────────────────────────────────────────────────────┤
+  │ +id                  : string          UUID                           │
+  │ +title               : string                                         │
+  │ +description         : string                                         │
+  │ +icon                : string                                         │
+  │ +category            : AchievementCategory                            │
+  │ +unlockedAt          : string          ISO 8601                       │
+  │ +seen                : boolean         read/unread toggle             │
+  │ +scoreBonus          : number                                         │
+  └────────────────────────────────────────────────────────────────────────┘
+
+  ┌────────────────────────────────────────────────────────────────────────┐
+  │ [CE] Badge                              (progress → earned)           │
+  ├────────────────────────────────────────────────────────────────────────┤
+  │ +id                  : string          UUID                           │
+  │ +name                : string                                         │
+  │ +description         : string                                         │
+  │ +icon                : string                                         │
+  │ +rarity              : BadgeRarity                                    │
+  │ +category            : string                                         │
+  │ +requirements        : string                                         │
+  │ +progress            : number          0-100                          │
+  │ +earnedAt            : string          ISO 8601                       │
+  │ +seen                : boolean         read/unread toggle             │
+  └────────────────────────────────────────────────────────────────────────┘
+
+  ┌────────────────────────────────────────────────────────────────────────┐
+  │ [CE] PortfolioProject                   (user content, limited qty)   │
+  ├────────────────────────────────────────────────────────────────────────┤
+  │ +id                  : string          UUID                           │
+  │ +title               : string                                         │
+  │ +description         : string                                         │
+  │ +technologies        : string[]                                       │
+  │ +repoUrl             : string                                         │
+  │ +demoUrl             : string                                         │
+  │ +imageUrl            : string                                         │
+  │ +status              : CompletionStatus                               │
+  │ +featured            : boolean                                        │
+  │ +createdAt           : string          ISO 8601                       │
+  │ +completedAt         : string          ISO 8601, nullable             │
+  ├────────────────────────────────────────────────────────────────────────┤
+  │ ~~~▶ SkillCatalog   (via portfolio_project_skills junction)          │
+  └────────────────────────────────────────────────────────────────────────┘
+
+  ┌────────────────────────────────────────────────────────────────────────┐
+  │ [CE] Notification                       (lazy-loaded, paginated)      │
+  ├────────────────────────────────────────────────────────────────────────┤
+  │ +id                  : string          UUID                           │
+  │ +userId              : string          FK → User.id                   │
+  │ +type                : NotificationType                               │
+  │ +title               : string                                         │
+  │ +message             : string                                         │
+  │ +read                : boolean         unread→read (no reverse)       │
+  │ +readAt              : string          ISO 8601, nullable             │
+  │ +sourceEntityType    : string          polymorphic: application|goal..│
+  │ +sourceEntityId      : string          polymorphic FK                 │
+  │ +link                : string          deep-link to source            │
+  │ +createdAt           : string          ISO 8601                       │
+  ├────────────────────────────────────────────────────────────────────────┤
+  │ TABLE PARTITIONED BY RANGE(created_at)  — monthly partitions          │
+  │ INDEX(userId, read) WHERE read = FALSE  — unread notification lookup │
+  └────────────────────────────────────────────────────────────────────────┘
+
+
+================================================================================
+  BOUNDARY 2 — SUBSCRIPTION                Separate billing context
+================================================================================
+
+  ┌────────────────────────────────────────────────────────────────────────┐
+  │ [AR] Subscription                       (Stripe-integrated)           │
+  ├────────────────────────────────────────────────────────────────────────┤
+  │ +id                    : string        UUID                           │
+  │ +userId                : string        FK → User.id                   │
+  │ +plan                  : Plan                                         │
+  │ +status                : SubscriptionStatus  trialing|active|past_due │
+  │ +billingCycle          : BillingCycle  monthly|yearly                 │
+  │ +stripeCustomerId      : string        Stripe customer reference      │
+  │ +stripeSubscriptionId  : string        Stripe subscription reference  │
+  │ +currentPeriodStart    : string        ISO 8601                       │
+  │ +currentPeriodEnd      : string        ISO 8601                       │
+  │ +trialEnd              : string        ISO 8601, nullable             │
+  │ +canceledAt            : string        ISO 8601, nullable             │
+  │ +price                 : number        in smallest currency unit      │
+  │ +currency              : string        ISO 4217 (USD, EUR, etc.)     │
+  └────────────────────────────────────────────────────────────────────────┘
+
+
+================================================================================
+  BOUNDARY 3 — GOAL                         Consistency: Goal row = lock root
+================================================================================
+
+  ┌────────────────────────────────────────────────────────────────────────┐
+  │ [AR] Goal                                                             │
+  ├────────────────────────────────────────────────────────────────────────┤
+  │ +id                  : string          UUID                           │
+  │ +userId              : string          FK → User.id                   │
+  │ +title               : string                                         │
+  │ +description         : string                                         │
+  │ +targetDate          : string          ISO 8601, nullable             │
+  │ +status              : GoalStatus      not-started|in-progress|...    │
+  │ +careerPath          : string                                         │
+  │ +progress            : number          0-100, recalculated on toggle │
+  │ +createdAt           : string          ISO 8601                       │
+  │ +completedAt         : string          ISO 8601, nullable             │
+  │ #milestones          : Milestone[]     JSONB embedded                │
+  ├────────────────────────────────────────────────────────────────────────┤
+  │ Business rule: Toggle milestone → atomic progress recalculation       │
+  │ Business rule: Cannot modify milestones when status = completed       │
+  │ ╌╌╌▶ *  LearningPlan   (via goalId)                                  │
+  │ ╌╌╌▶ *  Application    (via goalId)                                  │
+  │ ~~~▶ SkillCatalog     (via goal_skills junction table)               │
+  └────────────────────────────────────────────────────────────────────────┘
+
+  ┌────────────────────────────────────────────────────────────────────────┐
+  │ [VO] Milestone                          (stored as JSONB on Goal)     │
+  ├────────────────────────────────────────────────────────────────────────┤
+  │ +id                  : string          UUID (local to parent)         │
+  │ +title               : string                                         │
+  │ +description         : string                                         │
+  │ +completed           : boolean         toggled by user                │
+  │ +completedAt         : string          ISO 8601, nullable             │
+  │ +order               : number          display ordering               │
+  └────────────────────────────────────────────────────────────────────────┘
+
+
+================================================================================
+  BOUNDARY 4 — LEARNING PLAN                Consistency: LearningPlan row = lock root
+================================================================================
+
+  ┌────────────────────────────────────────────────────────────────────────┐
+  │ [AR] LearningPlan                                                      │
+  ├────────────────────────────────────────────────────────────────────────┤
+  │ +id                    : string        UUID                           │
+  │ +userId                : string        FK → User.id                   │
+  │ +title                 : string                                       │
+  │ +description           : string                                       │
+  │ +goalId                : string        FK → Goal.id, nullable         │
+  │ +progress              : number        0-100                          │
+  │ +estimatedDuration     : string                                       │
+  │ +status                : PlanStatus    active|paused|completed|...    │
+  │ +expectedCareerImpact  : number       0-100                          │
+  │ +createdAt             : string        ISO 8601                       │
+  │ +completedAt           : string        ISO 8601, nullable             │
+  │ #items                 : LearningItem[]  child entities               │
+  ├────────────────────────────────────────────────────────────────────────┤
+  │ Business rule: Toggle item → atomic progress recalculation            │
+  │ ~~~▶ SkillCatalog   (via learning_plan_skills junction table)         │
+  └────────────────────────────────────────────────────────────────────────┘
+
+  ┌────────────────────────────────────────────────────────────────────────┐
+  │ [CE] LearningItem                       (child of LearningPlan)       │
+  ├────────────────────────────────────────────────────────────────────────┤
+  │ +id                  : string          UUID                           │
+  │ +title               : string                                         │
+  │ +description         : string                                         │
+  │ +completed           : boolean                                        │
+  │ +completedAt         : string          ISO 8601, nullable             │
+  │ +range               : string          resource range/URL            │
+  │ +tag                 : string          categorization tag             │
+  │ +order               : number          display ordering               │
+  │ +skillBoostAmount    : number          estimated skill points         │
+  └────────────────────────────────────────────────────────────────────────┘
+
+
+================================================================================
+  BOUNDARY 5 — JOB                           Standalone root, referenced by App
+================================================================================
+
+  ┌────────────────────────────────────────────────────────────────────────┐
+  │ [AR] Job                                                              │
+  ├────────────────────────────────────────────────────────────────────────┤
+  │ +id                  : string          UUID                           │
+  │ +userId              : string          FK → User.id                   │
+  │ +company             : string                                         │
+  │ +title               : string                                         │
+  │ +description         : string                                         │
+  │ +location            : string                                         │
+  │ +url                 : string          listing URL                    │
+  │ +salaryRange         : SalaryRange     value object                  │
+  │ +source              : string          feed source (linkedin|etc)     │
+  │ +companyLogo         : string          URL                           │
+  │ +companySize         : string          startup|sme|enterprise        │
+  │ +industry            : string                                         │
+  │ +matchScore          : number          0-100, externally computed    │
+  ├────────────────────────────────────────────────────────────────────────┤
+  │ Primarily a data holder — minimal business logic                      │
+  │ ╌╌╌▶ *  Application   (via jobId)                                    │
+  │ ~~~▶ SkillCatalog    (via job_skills junction table)                 │
+  └────────────────────────────────────────────────────────────────────────┘
+
+
+================================================================================
+  BOUNDARY 6 — APPLICATION AGGREGATE        Consistency: Application row = lock root
+================================================================================
+
+  ┌────────────────────────────────────────────────────────────────────────┐
+  │ [AR] Application                                                      │
+  ├────────────────────────────────────────────────────────────────────────┤
+  │ +id                  : string          UUID                           │
+  │ +userId              : string          FK → User.id                   │
+  │ +jobId               : string          FK → Job.id                    │
+  │ +status              : ApplicationStatus  wishlist→applied→...→offer  │
+  │ +appliedDate         : string          ISO 8601                       │
+  │ +notes               : string                                         │
+  │ +goalId              : string          FK → Goal.id, nullable         │
+  │ #interviews          : Interview[]     child entities, cascade       │
+  │ #offers              : Offer[]         child entities, cascade       │
+  ├────────────────────────────────────────────────────────────────────────┤
+  │ Business rules:                                                       │
+  │  • interview status → requires at least 1 Interview                   │
+  │  • offer status     → requires at least 1 Offer                       │
+  │  • Pipeline moves forward or to rejected (no backward)                │
+  └────────────────────────────────────────────────────────────────────────┘
+            │
+            │ ───▶ *  Interview
+            │ ───▶ *  Offer
+            │
+            │ ╌╌╌▶ 0..1  Negotiation   (via Offer.negotiationId)
+
+  ┌────────────────────────────────────────────────────────────────────────┐
+  │ [CE] Interview                          (child of Application)        │
+  ├────────────────────────────────────────────────────────────────────────┤
+  │ +id                  : string          UUID                           │
+  │ +type                : InterviewType   phone|technical|behavioural|...│
+  │ +status              : InterviewStatus  scheduled|completed|cancelled │
+  │ +company             : string                                         │
+  │ +role                : string                                         │
+  │ +score               : number          0-100                          │
+  │ +feedback            : string                                         │
+  │ +isMock              : boolean         mock interview flag            │
+  │ +date                : string          ISO 8601                       │
+  │ #answers             : InterviewAnswer[]  JSONB embedded             │
+  └────────────────────────────────────────────────────────────────────────┘
+            │
+            │ ───▶ *  InterviewAnswer
+
+  ┌────────────────────────────────────────────────────────────────────────┐
+  │ [VO] InterviewAnswer                     (stored as JSONB on Interview)│
+  ├────────────────────────────────────────────────────────────────────────┤
+  │ +question            : string                                         │
+  │ +answer              : string                                         │
+  │ +score               : number          0-100                          │
+  │ +feedback            : string                                         │
+  │ +order               : number          display ordering               │
+  └────────────────────────────────────────────────────────────────────────┘
+
+  ┌────────────────────────────────────────────────────────────────────────┐
+  │ [CE] Offer                               (child of Application)       │
+  ├────────────────────────────────────────────────────────────────────────┤
+  │ +id                  : string          UUID                           │
+  │ +company             : string                                         │
+  │ +role                : string                                         │
+  │ +baseSalary          : Money           value object                  │
+  │ +equity              : string          equity details                 │
+  │ +bonus               : string          bonus details                  │
+  │ +benefits            : string[]        list of benefits              │
+  │ +status              : OfferStatus     pending|accepted|declined     │
+  │ +receivedDate        : string          ISO 8601                       │
+  │ +decisionDeadline    : string          ISO 8601, nullable             │
+  │ +notes               : string                                         │
+  │ +negotiationId       : string          FK → Negotiation.id, nullable │
+  └────────────────────────────────────────────────────────────────────────┘
+            │
+            │ ╌╌╌▶ 0..1  Negotiation   (via negotiationId)
+
+
+================================================================================
+  BOUNDARY 7 — NEGOTIATION                  Independent extended lifecycle
+================================================================================
+
+  ┌────────────────────────────────────────────────────────────────────────┐
+  │ [AR] Negotiation                        (references Offer by ID)      │
+  ├────────────────────────────────────────────────────────────────────────┤
+  │ +id                  : string          UUID                           │
+  │ +userId              : string          FK → User.id                   │
+  │ +offerId             : string          FK → Offer.id                  │
+  │ +offeredSalary       : Money           value object                  │
+  │ +targetSalary        : Money           value object                  │
+  │ +finalSalary         : Money           value object, nullable        │
+  │ +status              : NegotiationStatus  pending|active|accepted|...│
+  │ +strategy            : string          AI-generated strategy         │
+  │ +talkingPoints       : string[]        key talking points            │
+  │ +timeline            : string          negotiation timeline          │
+  │ +createdAt           : string          ISO 8601                       │
+  │ +completedAt         : string          ISO 8601, nullable             │
+  └────────────────────────────────────────────────────────────────────────┘
+
+
+================================================================================
+  BOUNDARY 8 — RESUME                        Consistency: Resume row = lock root
+================================================================================
+
+  ┌────────────────────────────────────────────────────────────────────────┐
+  │ [AR] Resume                                                           │
+  ├────────────────────────────────────────────────────────────────────────┤
+  │ +id                  : string          UUID                           │
+  │ +userId              : string          FK → User.id                   │
+  │ +version             : number          auto-increment                 │
+  │ +title               : string                                         │
+  │ +atsScore            : number          0-100                          │
+  │ +detectedKeywords    : string[]        from ATS analysis             │
+  │ +missingKeywords     : string[]        from ATS analysis             │
+  │ +suggestions         : string[]        improvement suggestions       │
+  │ #sections            : ResumeSection[]  child entities, ordered      │
+  ├────────────────────────────────────────────────────────────────────────┤
+  │ Business rule: No duplicate section type + order within a version     │
+  │ ~~~▶ SkillCatalog   (via resume_skills junction table)               │
+  └────────────────────────────────────────────────────────────────────────┘
+            │
+            │ ───▶ *  ResumeSection
+
+  ┌────────────────────────────────────────────────────────────────────────┐
+  │ [CE] ResumeSection                       (child of Resume)            │
+  ├────────────────────────────────────────────────────────────────────────┤
+  │ +id                  : string          UUID                           │
+  │ +type                : string          summary|experience|education   │
+  │ +title               : string          section heading               │
+  │ +content             : string          rich text / markdown          │
+  │ +order               : number          display ordering               │
+  └────────────────────────────────────────────────────────────────────────┘
+
+
+================================================================================
+  BOUNDARY 9 — AI COACH                     Consistency: AIConversation row = lock root
+================================================================================
+
+  ┌────────────────────────────────────────────────────────────────────────┐
+  │ [AR] AIConversation                     (AI coaching session)         │
+  ├────────────────────────────────────────────────────────────────────────┤
+  │ +id                  : string          UUID                           │
+  │ +userId              : string          FK → User.id                   │
+  │ +title               : string                                         │
+  │ +context             : string          current conversation context   │
+  │ +createdAt           : string          ISO 8601                       │
+  │ +updatedAt           : string          ISO 8601                       │
+  │ +lastMessageAt       : string          ISO 8601                       │
+  │ +messageCount        : number          denormalized, atomic update    │
+  │ #messages            : AIMessage[]     child entities, ordered       │
+  ├────────────────────────────────────────────────────────────────────────┤
+  │ Business rule: Adding a message atomically updates messageCount +     │
+  │ lastMessageAt for sequential consistency within the conversation.     │
+  └────────────────────────────────────────────────────────────────────────┘
+            │
+            │ ───▶ *  AIMessage
+
+  ┌────────────────────────────────────────────────────────────────────────┐
+  │ [CE] AIMessage                           (child of AIConversation)    │
+  ├────────────────────────────────────────────────────────────────────────┤
+  │ +id                  : string          UUID                           │
+  │ +role                : AIMessageRole   user|assistant|system          │
+  │ +content             : string          message body                  │
+  │ +metadata            : object          JSON, model info, etc.        │
+  │ +tokensUsed          : number          token count for this message   │
+  │ +order               : number          sequential ordering            │
+  │ +createdAt           : string          ISO 8601                       │
+  ├────────────────────────────────────────────────────────────────────────┤
+  │ TABLE PARTITIONED BY HASH(conversation_id)  — for large conversations │
+  └────────────────────────────────────────────────────────────────────────┘
+
+
+================================================================================
+  BOUNDARY 10 — COMMUNITY                   Consistency: CommunityPost row = lock root
+================================================================================
+
+  ┌────────────────────────────────────────────────────────────────────────┐
+  │ [AR] CommunityPost                       (moderated content)          │
+  ├────────────────────────────────────────────────────────────────────────┤
+  │ +id                  : string          UUID                           │
+  │ +userId              : string          FK → User.id                   │
+  │ +title               : string                                         │
+  │ +body                : string          rich text / markdown          │
+  │ +tags                : string[]        categorization tags           │
+  │ +commentCount        : number          denormalized, atomic update    │
+  │ +reactionCount       : number          denormalized, atomic update    │
+  │ +isPinned            : boolean         moderation feature             │
+  │ +isArchived          : boolean         moderation feature             │
+  │ #comments            : CommunityComment[]  child entities            │
+  │ #reactions           : CommunityReaction[] child entities            │
+  ├────────────────────────────────────────────────────────────────────────┤
+  │ Business rule: Adding comment/reaction atomically updates count       │
+  │ Business rule: Threaded comments preserve parentCommentId integrity   │
+  └────────────────────────────────────────────────────────────────────────┘
+            │
+            │ ───▶ *  CommunityComment
+            │ ───▶ *  CommunityReaction
+
+  ┌────────────────────────────────────────────────────────────────────────┐
+  │ [CE] CommunityComment                    (supports threading)         │
+  ├────────────────────────────────────────────────────────────────────────┤
+  │ +id                  : string          UUID                           │
+  │ +body                : string          comment content               │
+  │ +parentCommentId     : string          nullable, for threading       │
+  └────────────────────────────────────────────────────────────────────────┘
+
+  ┌────────────────────────────────────────────────────────────────────────┐
+  │ [CE] CommunityReaction                   (post or comment reaction)   │
+  ├────────────────────────────────────────────────────────────────────────┤
+  │ +id                  : string          UUID                           │
+  │ +postId              : string          FK → CommunityPost.id         │
+  │ +type                : ReactionType    like|love|insightful|...      │
+  │ +createdAt           : string          ISO 8601                       │
+  └────────────────────────────────────────────────────────────────────────┘
+
+
+================================================================================
+  REFERENCE DATA                            Platform-seeded, no aggregate behavior
+================================================================================
+
+  ┌────────────────────────────────────────────────────────────────────────┐
+  │ [REF] SkillCatalog                      (shared across all users)     │
+  ├────────────────────────────────────────────────────────────────────────┤
+  │ +id                  : string          UUID                           │
+  │ +name                : string          unique, e.g. "React"          │
+  │ +category            : SkillCategory   frontend|backend|devops|...   │
+  │ +marketDemand        : DemandLevel     high|medium|low               │
+  ├────────────────────────────────────────────────────────────────────────┤
+  │ Referenced by junction tables:                                        │
+  │   • goal_skills               (Goal ⟷ SkillCatalog)                   │
+  │   • learning_plan_skills      (LearningPlan ⟷ SkillCatalog)            │
+  │   • job_skills                (Job ⟷ SkillCatalog)                    │
+  │   • resume_skills             (Resume ⟷ SkillCatalog)                 │
+  │   • portfolio_project_skills  (PortfolioProject ⟷ SkillCatalog)       │
+  │   • UserSkill.skillCatalogId  (UserSkill → SkillCatalog, M:1)        │
+  └────────────────────────────────────────────────────────────────────────┘
+
+
+================================================================================
+  VALUE OBJECTS                             Immutable, compared by value
+================================================================================
+
+  ┌──────────────────────────────────────┐
+  │ [VO] Money                           │
+  ├──────────────────────────────────────┤
+  │ +amount    : number                  │
+  │ +currency  : string   ISO 4217       │
+  └──────────────────────────────────────┘
+
+  ┌──────────────────────────────────────┐
+  │ [VO] SalaryRange                     │
+  ├──────────────────────────────────────┤
+  │ +min       : Money                   │
+  │ +max       : Money                   │
+  └──────────────────────────────────────┘
+
+
+================================================================================
+  RELATIONSHIP SUMMARY
+================================================================================
+
+  Composition (───▶ within aggregate boundary):
+    User                  ───▶ 1  CareerProfile
+    User                  ───▶ *  UserSkill
+    User                  ───▶ *  Achievement
+    User                  ───▶ *  Badge
+    User                  ───▶ *  PortfolioProject
+    Goal                  ───▶ *  Milestone             (JSONB)
+    LearningPlan          ───▶ *  LearningItem
+    Application           ───▶ *  Interview
+    Application           ───▶ *  Offer
+    Interview             ───▶ *  InterviewAnswer       (JSONB)
+    Resume                ───▶ *  ResumeSection
+    AIConversation        ───▶ *  AIMessage
+    CommunityPost         ───▶ *  CommunityComment
+    CommunityPost         ───▶ *  CommunityReaction
+
+  Association (╌╌╌▶ cross-aggregate by ID):
+    User                  ╌╌╌▶ 0..1  Subscription
+    User                  ╌╌╌▶ *     Goal
+    User                  ╌╌╌▶ *     LearningPlan
+    User                  ╌╌╌▶ *     Job
+    User                  ╌╌╌▶ *     Application
+    User                  ╌╌╌▶ *     Resume
+    User                  ╌╌╌▶ *     AIConversation
+    User                  ╌╌╌▶ *     CommunityPost
+    User                  ╌╌╌▶ *     Negotiation
+    User                  ╌╌╌▶ *     Notification
+    Goal                  ╌╌╌▶ *     LearningPlan
+    Goal                  ╌╌╌▶ *     Application
+    Job                   ╌╌╌▶ *     Application
+    Offer                 ╌╌╌▶ 0..1  Negotiation
+
+  Many-to-Many (~~~▶ via junction table):
+    UserSkill             ~~~▶ 1     SkillCatalog
+    Goal                  ~~~▶ *     SkillCatalog
+    LearningPlan          ~~~▶ *     SkillCatalog
+    PortfolioProject      ~~~▶ *     SkillCatalog
+    Job                   ~~~▶ *     SkillCatalog
+    Resume                ~~~▶ *     SkillCatalog
+
+
+================================================================================
+  END OF CLASS DIAGRAM
+================================================================================
