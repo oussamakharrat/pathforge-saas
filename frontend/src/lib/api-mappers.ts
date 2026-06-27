@@ -1,5 +1,6 @@
 import type {
   Goal,
+  GoalMilestone,
   Skill,
   LearningStep,
   KanbanCard,
@@ -11,7 +12,12 @@ import type {
 import { getSkillLevelLabel } from '@/domain/entities/skill';
 import { toLegacyId } from '@/lib/id-registry';
 
-export type LearningStepMeta = LearningStep & { planId?: string; itemId?: string };
+export type LearningStepMeta = LearningStep & {
+  planId?: string;
+  itemId?: string;
+  goalId?: string;
+  goalLegacyId?: number;
+};
 export type SkillMeta = Skill & { userSkillId?: string; skillCatalogId?: string };
 
 const EMPTY_KANBAN = (): Record<KanbanCol, KanbanCard[]> => ({
@@ -30,6 +36,7 @@ const STATUS_TO_COL: Record<string, KanbanCol> = {
   applied: 'applied',
   screening: 'screening',
   interview: 'interview',
+  final_round: 'final',
   offer: 'offer',
   rejected: 'rejected',
   accepted: 'offer',
@@ -40,20 +47,22 @@ export const COL_TO_STATUS: Record<KanbanCol, string> = {
   applied: 'applied',
   screening: 'screening',
   interview: 'interview',
-  final: 'interview',
+  final: 'final_round',
   offer: 'offer',
   rejected: 'rejected',
 };
 
 export function apiGoalToLegacy(g: Record<string, unknown>): Goal {
-  const milestones = (g.milestones as { completed?: boolean }[]) ?? [];
+  const milestones = (g.milestones as GoalMilestone[]) ?? [];
   return {
     id: toLegacyId(String(g.id)),
+    apiId: String(g.id),
     title: String(g.title),
     progress: Number(g.progress ?? 0),
     deadline: g.targetDate ? String(g.targetDate).split('T')[0] : '',
     steps: milestones.length || 1,
     done: milestones.filter((m) => m.completed).length,
+    milestones,
   };
 }
 
@@ -73,6 +82,7 @@ export function apiSkillToLegacy(s: Record<string, unknown>): SkillMeta {
 export function apiLearningItemToLegacy(
   item: Record<string, unknown>,
   planId: string,
+  goalId?: string,
 ): LearningStepMeta {
   return {
     id: toLegacyId(String(item.id)),
@@ -83,6 +93,8 @@ export function apiLearningItemToLegacy(
     active: !item.completed,
     planId,
     itemId: String(item.id),
+    goalId,
+    goalLegacyId: goalId ? toLegacyId(goalId) : undefined,
   };
 }
 
@@ -211,7 +223,7 @@ export function apiAchievementDefToLegacy(d: Record<string, unknown>, earned?: R
     category: String(d.category),
     criteria: String(d.criteria),
     unlocked: Boolean(earned),
-    unlockedDate: earned?.earnedAt ? String(earned.earnedAt).split('T')[0] : undefined,
+    unlockedDate: earned?.unlockedAt ? String(earned.unlockedAt).split('T')[0] : undefined,
     seen: Boolean(earned?.seen),
   };
 }

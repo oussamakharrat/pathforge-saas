@@ -96,6 +96,10 @@ export const api = {
     });
   },
 
+  deleteSkill(id: string) {
+    return request(`/users/me/skills/${id}`, { method: 'DELETE' });
+  },
+
   getSkills() {
     return request<Record<string, unknown>[]>('/users/me/skills');
   },
@@ -121,6 +125,10 @@ export const api = {
       method: 'PATCH',
       body: JSON.stringify({ completed }),
     });
+  },
+
+  deleteLearningItem(planId: string, itemId: string) {
+    return request(`/learning-plans/${planId}/items/${itemId}`, { method: 'DELETE' });
   },
 
   getPortfolio() {
@@ -162,8 +170,36 @@ export const api = {
     });
   },
 
+  updateApplicationNotes(id: string, notes: string) {
+    return request<Record<string, unknown>>(`/jobs/applications/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ notes }),
+    });
+  },
+
   createInterview(applicationId: string, data: Record<string, unknown>) {
     return request<Record<string, unknown>>(`/jobs/applications/${applicationId}/interviews`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  updateInterview(applicationId: string, interviewId: string, data: Record<string, unknown>) {
+    return request<Record<string, unknown>>(
+      `/jobs/applications/${applicationId}/interviews/${interviewId}`,
+      { method: 'PATCH', body: JSON.stringify(data) },
+    );
+  },
+
+  addOffer(applicationId: string, data: Record<string, unknown>) {
+    return request<Record<string, unknown>>(`/jobs/applications/${applicationId}/offers`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  createMockInterview(data: Record<string, unknown>) {
+    return request<Record<string, unknown>>('/jobs/mock-interviews', {
       method: 'POST',
       body: JSON.stringify(data),
     });

@@ -20,7 +20,7 @@ export default function JobTrackerPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const initialSearch = searchParams.get("skill") || "";
   const { skills, trackApplication, trackInterview, trackOffer, recalculateJobMatch } = useCareerData();
-  const { kanban: cols, moveCard, addCard, removeCard } = useJobs();
+  const { kanban: cols, moveCard, addCard, removeCard, updateApplicationNotes } = useJobs();
 
   const [dragging, setDragging] = useState<{ card: KanbanCard; from: KanbanCol } | null>(null);
   const [dragOver, setDragOver] = useState<KanbanCol | null>(null);
@@ -183,10 +183,15 @@ export default function JobTrackerPage() {
                     <textarea value={editNotesText} onChange={e => setEditNotesText(e.target.value)} rows={3}
                       className="w-full rounded-xl border border-border text-[13px] text-foreground px-3 py-2 focus:outline-none focus:ring-2 focus:ring-ring resize-none"
                       style={{ backgroundColor: "white" }} />
-                    <button onClick={() => {
-                      setSelected(prev => prev ? { ...prev, notes: editNotesText } : null);
-                      setEditingNotes(false);
-                      toast.success("Notes updated locally");
+                    <button onClick={async () => {
+                      try {
+                        await updateApplicationNotes(selected.id, editNotesText);
+                        setSelected(prev => prev ? { ...prev, notes: editNotesText } : null);
+                        setEditingNotes(false);
+                        toast.success("Notes saved");
+                      } catch {
+                        toast.error("Failed to save notes");
+                      }
                     }} className="text-[11px] font-bold px-3 py-1.5 rounded-xl border border-border hover:border-orange-200 transition-all self-end" style={{ color: FLAME }}>Save Notes</button>
                   </div>
                 ) : (

@@ -57,10 +57,18 @@ interface CareerDataContextType {
   updateSkill: (name: string, updates: Partial<Pick<Skill, 'level' | 'pct' | 'cat'>>) => void;
   deleteSkill: (name: string) => void;
   deleteLearningStep: (stepId: number) => void;
+  toggleMilestone: (goalId: number, milestoneId: string, completed?: boolean) => void;
   trackApplication: () => void;
   trackInterview: () => void;
   trackOffer: () => void;
-  completeMockInterview: () => void;
+  completeMockInterview: (payload: {
+    company: string;
+    role: string;
+    type: string;
+    score: number;
+    feedback: string;
+    answers: { q: string; a: string; score: number; feedback: string }[];
+  }) => Promise<void>;
   completeNegotiation: () => void;
   submitQuiz: (skillName: string, correct: number, total: number) => void;
   recalculateJobMatch: (company: string, currentSkillPcts: { name: string; pct: number }[]) => number;
@@ -103,7 +111,7 @@ export function CareerDataProvider({ children }: { children: ReactNode }) {
 
   const { addNotification } = useNotifications();
   const { authed } = useAuth();
-  const { referenceSkills, refresh: refreshReferenceSkills } = useGamification();
+  const { referenceSkills, refresh: refreshReferenceSkills, refresh: refreshGamification } = useGamification();
 
   const refresh = useCallback(async () => {
     if (!authed) return;
@@ -122,8 +130,9 @@ export function CareerDataProvider({ children }: { children: ReactNode }) {
       setSkills(skillsData.map(apiSkillToLegacy));
       const steps: LearningStepMeta[] = [];
       for (const plan of plansData) {
+        const goalId = plan.goalId ? String(plan.goalId) : undefined;
         for (const item of (plan.items as Record<string, unknown>[]) ?? []) {
-          steps.push(apiLearningItemToLegacy(item, String(plan.id)));
+          steps.push(apiLearningItemToLegacy(item, String(plan.id), goalId));
         }
       }
       setLearningSteps(steps);
@@ -235,14 +244,39 @@ export function CareerDataProvider({ children }: { children: ReactNode }) {
   }, [skills, refresh]);
 
   const deleteSkill = useCallback((name: string) => {
-    void name;
-    toast.info('Remove skill is not supported by the API yet.');
-  }, []);
+    const skill = skills.find((s) => s.name === name) as SkillMeta | undefined;
+    if (!skill?.userSkillId) return;
+    void api.deleteSkill(skill.userSkillId)
+      .then(() => {
+        toast.success(`"${name}" removed from your skills.`);
+        void refreshReferenceSkills();
+        return refresh();
+      })
+      .catch(() => toast.error('Failed to remove skill'));
+  }, [skills, refresh, refreshReferenceSkills]);
 
   const deleteLearningStep = useCallback((stepId: number) => {
-    void stepId;
-    toast.info('Remove learning step is not supported by the API yet.');
-  }, []);
+    const step = learningSteps.find((s) => s.id === stepId);
+    if (!step?.planId || !step.itemId) return;
+    void api.deleteLearningItem(step.planId, step.itemId)
+      .then(() => {
+        toast.success('Learning step removed.');
+        return refresh();
+      })
+      .catch(() => toast.error('Failed to remove learning step'));
+  }, [learningSteps, refresh]);
+
+  const toggleMilestone = useCallback((goalId: number, milestoneId: string, completed?: boolean) => {
+    const goal = goals.find((g) => g.id === goalId);
+    if (!goal?.apiId) return;
+    void api.toggleMilestone(goal.apiId, milestoneId, completed)
+      .then(() => {
+        toast.success('Milestone updated!');
+        void refreshGamification();
+        return refresh();
+      })
+      .catch(() => toast.error('Failed to update milestone'));
+  }, [goals, refresh, refreshGamification]);
 
   const trackApplication = useCallback(() => {
     void refresh();
@@ -256,11 +290,36 @@ export function CareerDataProvider({ children }: { children: ReactNode }) {
     void refresh();
   }, [refresh]);
 
-  const completeMockInterview = useCallback(() => {
-    void refresh().then(() =>
-      addNotification('milestone_reached', 'Mock Interview Complete', 'Mock interview recorded.', '/app/interview'),
-    );
-  }, [refresh, addNotification]);
+  const completeMockInterview = useCallback(async (payload: {
+    company: string;
+    role: string;
+    type: string;
+    score: number;
+    feedback: string;
+    answers: { q: string; a: string; score: number; feedback: string }[];
+  }) => {
+    try {
+      await api.createMockInterview({
+        company: payload.company,
+        role: payload.role,
+        type: payload.type,
+        score: payload.score,
+        feedback: payload.feedback,
+        answers: payload.answers.map((a, i) => ({
+          question: a.q,
+          answer: a.a,
+          score: a.score,
+          feedback: a.feedback,
+          order: i,
+        })),
+      });
+      await refresh();
+      await refreshGamification();
+      addNotification('milestone_reached', 'Mock Interview Complete', 'Mock interview saved to your profile.', '/app/interview');
+    } catch {
+      toast.error('Failed to save mock interview');
+    }
+  }, [refresh, refreshGamification, addNotification]);
 
   const completeNegotiation = useCallback(() => {
     void refresh().then(() =>
@@ -368,6 +427,7 @@ export function CareerDataProvider({ children }: { children: ReactNode }) {
         updateSkill,
         deleteSkill,
         deleteLearningStep,
+        toggleMilestone,
         trackApplication,
         trackInterview,
         trackOffer,

@@ -8,6 +8,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { DashboardProjector } from '../common/dashboard.projector';
 import { NotificationsHelper } from '../common/notifications.helper';
+import { GamificationUnlockService } from '../common/gamification-unlock.service';
 import { assertFound, assertOwner } from '../common/assertions';
 import { validateStatusTransition } from '../domain/application.logic';
 import {
@@ -18,6 +19,8 @@ import {
   CreateInterviewDto,
   UpdateInterviewDto,
   CreateOfferDto,
+  UpdateApplicationNotesDto,
+  CreateMockInterviewDto,
 } from './dto/jobs.dto';
 
 @Injectable()
@@ -26,6 +29,7 @@ export class JobsService {
     private readonly prisma: PrismaService,
     private readonly dashboard: DashboardProjector,
     private readonly notifications: NotificationsHelper,
+    private readonly gamification: GamificationUnlockService,
   ) {}
 
   // ── Job Postings ──
@@ -177,10 +181,24 @@ export class JobsService {
       `${job.company} — ${job.title}`,
       app.id,
       'application',
-      '/tracker',
+      '/app/tracker',
     );
+    await this.gamification.onApplicationTracked(userId);
     await this.dashboard.refresh(userId);
     return app;
+  }
+
+  async updateApplicationNotes(
+    userId: string,
+    id: string,
+    dto: UpdateApplicationNotesDto,
+  ) {
+    await this.getApplication(userId, id);
+    return this.prisma.application.update({
+      where: { id },
+      data: { notes: dto.notes ?? '' },
+      include: { job: true },
+    });
   }
 
   async updateApplicationStatus(
@@ -194,7 +212,11 @@ export class JobsService {
     let hasInterviews = app.interviews.length > 0;
     let hasOffers = app.offers.length > 0;
 
-    if (newStatus === ApplicationStatus.interview && !hasInterviews) {
+    if (
+      (newStatus === ApplicationStatus.interview ||
+        newStatus === ApplicationStatus.final_round) &&
+      !hasInterviews
+    ) {
       await this.prisma.interview.create({
         data: {
           applicationId: id,
@@ -234,8 +256,11 @@ export class JobsService {
       `Status: ${newStatus}`,
       id,
       'application',
-      '/tracker',
+      '/app/tracker',
     );
+    if (newStatus === ApplicationStatus.offer) {
+      await this.gamification.onOfferReceived(userId);
+    }
     await this.dashboard.refresh(userId);
     await this.dashboard.refreshCareerMetrics(userId);
     return updated;
@@ -266,7 +291,7 @@ export class JobsService {
       `${dto.type} interview on ${dto.date}`,
       interview.id,
       'interview',
-      '/interview',
+      '/app/interview',
     );
     await this.dashboard.refresh(userId);
     return interview;
@@ -289,7 +314,7 @@ export class JobsService {
       );
     }
 
-    return this.prisma.interview.update({
+    const updated = await this.prisma.interview.update({
       where: { id: interviewId },
       data: {
         status: dto.status as InterviewStatus,
@@ -300,6 +325,16 @@ export class JobsService {
           | undefined,
       },
     });
+
+    if (
+      interview.isMock &&
+      (dto.status === InterviewStatus.completed || dto.score != null)
+    ) {
+      await this.gamification.onMockInterviewCompleted(userId);
+      await this.dashboard.refreshCareerMetrics(userId);
+    }
+
+    return updated;
   }
 
   async addOffer(userId: string, applicationId: string, dto: CreateOfferDto) {
@@ -332,9 +367,67 @@ export class JobsService {
       dto.company ?? 'New offer',
       offer.id,
       'offer',
-      '/negotiate',
+      '/app/negotiate',
     );
+    await this.gamification.onOfferReceived(userId);
     await this.dashboard.refresh(userId);
     return offer;
+  }
+
+  async createMockInterview(userId: string, dto: CreateMockInterviewDto) {
+    const typeMap: Record<string, InterviewType> = {
+      technical: InterviewType.technical,
+      behavioral: InterviewType.behavioral,
+      system: InterviewType.system_design,
+    };
+    const interviewType = typeMap[dto.type] ?? InterviewType.mock;
+
+    let job = await this.prisma.jobPosting.findFirst({
+      where: { userId, company: dto.company, title: dto.role },
+    });
+    if (!job) {
+      job = await this.prisma.jobPosting.create({
+        data: {
+          userId,
+          company: dto.company,
+          title: dto.role,
+          description: 'Mock interview practice session',
+        },
+      });
+    }
+
+    let application = await this.prisma.application.findFirst({
+      where: { userId, jobId: job.id },
+    });
+    if (!application) {
+      application = await this.prisma.application.create({
+        data: {
+          userId,
+          jobId: job.id,
+          status: ApplicationStatus.interview,
+          notes: 'Mock interview practice',
+        },
+      });
+    }
+
+    const interview = await this.prisma.interview.create({
+      data: {
+        applicationId: application.id,
+        type: interviewType,
+        date: new Date(),
+        company: dto.company,
+        role: dto.role,
+        isMock: true,
+        status: InterviewStatus.completed,
+        score: dto.score,
+        feedback: dto.feedback ?? '',
+        answers: (dto.answers ?? []) as Prisma.InputJsonValue,
+      },
+    });
+
+    await this.gamification.onMockInterviewCompleted(userId);
+    await this.dashboard.refresh(userId);
+    await this.dashboard.refreshCareerMetrics(userId);
+    return interview;
   }
 }

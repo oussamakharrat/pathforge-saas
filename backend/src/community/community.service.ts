@@ -82,7 +82,7 @@ export class CommunityService {
         dto.body.slice(0, 100),
         postId,
         'community_post',
-        '/community',
+        '/app/community',
       );
     }
 

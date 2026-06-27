@@ -1,4 +1,4 @@
-import { Controller, Get, Patch, Post, Put, Body, Param } from '@nestjs/common';
+import { Controller, Get, Patch, Post, Put, Delete, Body, Param } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import {
@@ -44,6 +44,11 @@ export class UsersController {
     @Body() dto: UpdateUserSkillDto,
   ) {
     return this.usersService.updateSkill(user.id, id, dto);
+  }
+
+  @Delete('me/skills/:id')
+  deleteSkill(@CurrentUser() user: { id: string }, @Param('id') id: string) {
+    return this.usersService.deleteSkill(user.id, id);
   }
 
   @Get('me/achievements')

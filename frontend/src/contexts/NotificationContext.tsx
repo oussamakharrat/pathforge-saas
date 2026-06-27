@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useCallback, useMemo, useEffect, useState, type ReactNode } from 'react';
 import { api } from '@/lib/api';
+import { normalizeNotificationLink } from '@/lib/notification-links';
 import type { AppNotification, NotificationType } from '@/data/types';
 
 interface NotificationContextType {
@@ -25,7 +26,7 @@ function mapApiNotification(n: Record<string, unknown>): AppNotification {
     message: String(n.message ?? ''),
     timestamp: String(n.createdAt ?? new Date().toISOString()),
     read: Boolean(n.read),
-    link: String(n.link ?? ''),
+    link: normalizeNotificationLink(String(n.link ?? '')),
   };
 }
 

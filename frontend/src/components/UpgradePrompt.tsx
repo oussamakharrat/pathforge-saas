@@ -1,13 +1,14 @@
 'use client';
 
-import { useState, useCallback, type ReactNode } from "react";
+import { useState, useCallback, useEffect, type ReactNode } from "react";
 import { useNavigate } from "@/lib/router";
 import { X, Sparkles, CheckCircle2, ArrowRight, Lock } from "lucide-react";
 import { FLAME, CARBON } from "../lib/constants";
 import { Card } from "./Card";
 import { Btn } from "./Btn";
-import { PLAN_META, type Plan } from "../data/types";
+import { PLAN_META, canAccessPage, type Plan } from "../data/types";
 import { UpgradeContext } from "../contexts/UpgradeContext";
+import { useAuth } from "../contexts/AuthContext";
 
 /**
  * Describes the features per locked page — used to show what the user would unlock.
@@ -52,14 +53,23 @@ const PAGE_UPGRADE_FEATURES: Record<string, { plan: Plan; features: string[]; pi
 
 export function UpgradeProvider({ children }: { children: ReactNode }) {
   const [upgradePage, setUpgradePage] = useState<{ id: string; label: string } | null>(null);
+  const { plan, isLoading } = useAuth();
 
   const requestUpgrade = useCallback((pageId: string, pageLabel: string) => {
+    if (isLoading || canAccessPage(plan, pageId)) return;
     setUpgradePage({ id: pageId, label: pageLabel });
-  }, []);
+  }, [plan, isLoading]);
 
   const dismissUpgrade = useCallback(() => {
     setUpgradePage(null);
   }, []);
+
+  useEffect(() => {
+    if (isLoading) return;
+    if (upgradePage && canAccessPage(plan, upgradePage.id)) {
+      setUpgradePage(null);
+    }
+  }, [plan, isLoading, upgradePage]);
 
   return (
     <UpgradeContext.Provider value={{ requestUpgrade, dismissUpgrade }}>

@@ -70,4 +70,13 @@ export class LearningPlansController {
   ) {
     return this.service.toggleItem(user.id, id, itemId, dto);
   }
+
+  @Delete(':id/items/:itemId')
+  removeItem(
+    @CurrentUser() user: { id: string },
+    @Param('id') id: string,
+    @Param('itemId') itemId: string,
+  ) {
+    return this.service.removeItem(user.id, id, itemId);
+  }
 }

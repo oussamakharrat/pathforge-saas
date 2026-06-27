@@ -8,6 +8,7 @@ import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
 import { DashboardProjector } from '../common/dashboard.projector';
 import { NotificationsHelper } from '../common/notifications.helper';
+import { GamificationUnlockService } from '../common/gamification-unlock.service';
 import { calculateStreak } from '../domain/user.logic';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
@@ -19,6 +20,7 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly dashboard: DashboardProjector,
     private readonly notifications: NotificationsHelper,
+    private readonly gamification: GamificationUnlockService,
   ) {}
 
   async register(dto: RegisterDto) {
@@ -58,7 +60,7 @@ export class AuthService {
       'Complete your profile to unlock personalized career insights.',
       user.id,
       'user',
-      '/settings',
+      '/app/settings',
     );
 
     const token = this.jwtService.sign({ sub: user.id, email: user.email });
@@ -100,6 +102,8 @@ export class AuthService {
         authProviderId: user.authProviderId ?? `local:${user.email}`,
       },
     });
+
+    await this.gamification.onStreakUpdated(user.id, streak.streakDays);
 
     const token = this.jwtService.sign({ sub: user.id, email: user.email });
 

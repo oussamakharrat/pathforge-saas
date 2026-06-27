@@ -33,7 +33,7 @@ export default function GoalsPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const highlightedSkill = searchParams.get("skill") || "";
-  const { goals, learningSteps, addGoal, updateGoal, deleteGoal } = useCareerData();
+  const { goals, learningSteps, addGoal, updateGoal, deleteGoal, toggleMilestone } = useCareerData();
 
   const [sel, setSel] = useState<number | null>(null);
   const [showAdd, setShowAdd] = useState(false);
@@ -75,9 +75,34 @@ export default function GoalsPage() {
             </div>
             <Bar pct={goal.progress} h={8} />
           </Card>
+          <Card className="p-4" hover={false}>
+            <h2 className="text-[14px] font-black mb-3" style={{ color: CARBON }}>Milestones</h2>
+            {goal.milestones.length === 0 ? (
+              <p className="text-[13px] text-muted-foreground italic">No milestones yet.</p>
+            ) : (
+              <div className="space-y-2">
+                {goal.milestones.map((m) => (
+                  <button
+                    key={m.id}
+                    onClick={() => toggleMilestone(goal.id, m.id)}
+                    className="w-full flex items-start gap-3 p-3 rounded-xl border border-border hover:border-orange-200 transition-all text-left"
+                  >
+                    <div className="w-5 h-5 rounded-full flex items-center justify-center border-2 flex-shrink-0 mt-0.5"
+                      style={m.completed ? { backgroundColor: FLAME, borderColor: FLAME } : { borderColor: DUST }}>
+                      {m.completed && <Check className="w-3 h-3 text-white" />}
+                    </div>
+                    <div className="flex-1">
+                      <p className={cn("text-[13px] font-bold", m.completed && "line-through text-muted-foreground")} style={!m.completed ? { color: CARBON } : {}}>{m.title}</p>
+                      {m.description && <p className="text-[11px] text-muted-foreground mt-0.5">{m.description}</p>}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </Card>
           <div>
             {(() => {
-              const goalSteps = learningSteps;
+              const goalSteps = learningSteps.filter((s) => s.goalLegacyId === goal.id);
               return (
                 <>
                   <div className="flex items-center justify-between mb-3">

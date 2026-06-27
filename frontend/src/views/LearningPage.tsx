@@ -19,7 +19,9 @@ export default function LearningPage() {
   const filterGoalId = searchParams.get("goalId") ? Number(searchParams.get("goalId")) : null;
   const { learningSteps, toggleStep, deleteLearningStep } = useCareerData();
 
-  const filteredSteps = learningSteps;
+  const filteredSteps = filterGoalId
+    ? learningSteps.filter((s) => s.goalLegacyId === filterGoalId)
+    : learningSteps;
 
   const done = filteredSteps.filter(s => s.done).length;
 

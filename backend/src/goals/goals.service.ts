@@ -3,6 +3,7 @@ import { randomUUID } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { DashboardProjector } from '../common/dashboard.projector';
 import { NotificationsHelper } from '../common/notifications.helper';
+import { GamificationUnlockService } from '../common/gamification-unlock.service';
 import { assertFound, assertOwner } from '../common/assertions';
 import { parseMilestones, recalculateGoalProgress } from '../domain/goal.logic';
 import type { Milestone } from '../domain/types';
@@ -14,12 +15,42 @@ import {
 } from './dto/goals.dto';
 import { Prisma, GoalStatus } from '@prisma/client';
 
+const DEFAULT_MILESTONES: Omit<Milestone, 'id'>[] = [
+  {
+    title: 'Define success criteria',
+    description: 'Clarify what achieving this goal looks like',
+    completed: false,
+    order: 1,
+  },
+  {
+    title: 'Build core skills',
+    description: 'Complete your linked learning plan steps',
+    completed: false,
+    order: 2,
+  },
+  {
+    title: 'Apply and iterate',
+    description: 'Track applications and interviews toward this goal',
+    completed: false,
+    order: 3,
+  },
+];
+
+const DEFAULT_LEARNING_ITEMS = [
+  { title: 'Research role requirements', tag: 'Planning' },
+  { title: 'Identify skill gaps', tag: 'Skills' },
+  { title: 'Complete foundational learning', tag: 'Learning' },
+  { title: 'Build portfolio evidence', tag: 'Portfolio' },
+  { title: 'Practice interviews', tag: 'Interview' },
+];
+
 @Injectable()
 export class GoalsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly dashboard: DashboardProjector,
     private readonly notifications: NotificationsHelper,
+    private readonly gamification: GamificationUnlockService,
   ) {}
 
   async findAll(userId: string) {
@@ -43,6 +74,11 @@ export class GoalsService {
   }
 
   async create(userId: string, dto: CreateGoalDto) {
+    const milestones: Milestone[] = DEFAULT_MILESTONES.map((m) => ({
+      ...m,
+      id: randomUUID(),
+    }));
+
     const goal = await this.prisma.goal.create({
       data: {
         userId,
@@ -50,6 +86,8 @@ export class GoalsService {
         description: dto.description ?? '',
         targetDate: dto.targetDate ? new Date(dto.targetDate) : null,
         careerPath: dto.careerPath ?? '',
+        milestones: milestones as unknown as Prisma.InputJsonValue,
+        progress: 0,
         skills: dto.skillCatalogIds?.length
           ? {
               create: dto.skillCatalogIds.map((skillCatalogId) => ({
@@ -61,6 +99,23 @@ export class GoalsService {
       include: { skills: { include: { skillCatalog: true } } },
     });
 
+    await this.prisma.learningPlan.create({
+      data: {
+        userId,
+        goalId: goal.id,
+        title: `${goal.title} — Learning Plan`,
+        description: `Auto-generated roadmap for "${goal.title}"`,
+        progress: 0,
+        items: {
+          create: DEFAULT_LEARNING_ITEMS.map((item, idx) => ({
+            title: item.title,
+            tag: item.tag,
+            order: idx,
+          })),
+        },
+      },
+    });
+
     await this.notifications.create(
       userId,
       'goal_created',
@@ -68,8 +123,9 @@ export class GoalsService {
       `You created "${goal.title}"`,
       goal.id,
       'goal',
-      '/goals',
+      '/app/goals',
     );
+    await this.gamification.onGoalCreated(userId);
     await this.dashboard.refresh(userId);
     return goal;
   }
@@ -181,8 +237,9 @@ export class GoalsService {
         `"${goal.title}" is complete`,
         goalId,
         'goal',
-        '/goals',
+        '/app/goals',
       );
+      await this.gamification.onGoalCompleted(userId);
       await this.dashboard.refreshCareerMetrics(userId);
     }
 

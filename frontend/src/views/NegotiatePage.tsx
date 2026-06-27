@@ -12,6 +12,8 @@ import { Bar } from "../components/Bar";
 import { Chip } from "../components/Chip";
 import { Field } from "../components/Field";
 import { useCareerData } from "../contexts/CareerDataContext";
+import { api } from "@/lib/api";
+import { useGamification } from "../contexts/GamificationContext";
 
 // Role-based multipliers (market premium over base offer)
 const ROLE_MULTIPLIERS: Record<string, number> = {
@@ -48,9 +50,11 @@ export default function NegotiatePage() {
   const initialRole = searchParams.get("role") || "";
   const initialSalary = searchParams.get("salary") || "";
   const { completeNegotiation, purchasedServices } = useCareerData();
+  const { refresh: refreshGamification } = useGamification();
   const hasSalaryCoach = purchasedServices.includes("Salary Negotiation");
 
   const [screen, setScreen] = useState<"input" | "analysis" | "counter">("input");
+  const [negotiationId, setNegotiationId] = useState<string | null>(null);
   const [offerSalary, setOfferSalary] = useState(initialSalary || "145000");
   const [role, setRole] = useState(initialRole || "Senior Software Engineer");
   const [company, setCompany] = useState(initialCompany || "Stripe");
@@ -93,10 +97,43 @@ export default function NegotiatePage() {
     return Object.keys(e).length === 0;
   };
 
-  const analyze = () => {
+  const analyze = async () => {
     if (!validate()) return;
     setAnalyzing(true);
-    setTimeout(() => { setAnalyzing(false); setScreen("analysis"); toast.success("Analysis complete! Showing market data."); }, 1800);
+    try {
+      const job = await api.createJobPosting({
+        company,
+        title: role,
+        location,
+        salaryRange: { amount: offered, currency: "USD" },
+      });
+      const app = await api.createApplication({
+        jobId: String(job.id),
+        notes: `Salary negotiation analysis for ${role} at ${company}`,
+        status: "offer",
+      });
+      const offer = await api.addOffer(String(app.id), {
+        company,
+        role,
+        baseSalary: { amount: offered, currency: "USD" },
+      });
+      const neg = await api.createNegotiation({
+        offerId: offer.id,
+        offeredSalary: { amount: offered, currency: "USD" },
+        targetSalary: { amount: target, currency: "USD" },
+        strategy: gap > 0 ? "Market-aligned counter-offer" : "Total compensation focus",
+        talkingPoints: [],
+      });
+      setNegotiationId(String(neg.id));
+      setScreen("analysis");
+      completeNegotiation();
+      void refreshGamification();
+      toast.success("Analysis complete! Negotiation saved.");
+    } catch {
+      toast.error("Failed to save negotiation analysis");
+    } finally {
+      setAnalyzing(false);
+    }
   };
 
   const copyScript = (id: string, text: string) => {
@@ -207,7 +244,21 @@ export default function NegotiatePage() {
           </div>
         </Card>
       )}
-      <Btn full size="lg" onClick={() => { completeNegotiation(); setScreen("counter"); }}><Sparkles className="w-4 h-4" /> Generate Counter-Offer Scripts</Btn>
+      <Btn full size="lg" onClick={async () => {
+        if (negotiationId) {
+          try {
+            await api.updateNegotiation(negotiationId, {
+              status: "active",
+              strategy: "Counter-offer scripts generated",
+              talkingPoints: scripts.map((s) => s.label),
+            });
+            void refreshGamification();
+          } catch {
+            toast.error("Failed to update negotiation");
+          }
+        }
+        setScreen("counter");
+      }}><Sparkles className="w-4 h-4" /> Generate Counter-Offer Scripts</Btn>
     </div>
   );
 

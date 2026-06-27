@@ -6,6 +6,7 @@ import { Bell, CheckCheck, Trash2, Sparkles, Target, BookOpen, Zap, DollarSign, 
 import { cn } from "../lib/utils";
 import { FLAME, CARBON } from "../lib/constants";
 import { useNotifications } from "../contexts/NotificationContext";
+import { normalizeNotificationLink } from "../lib/notification-links";
 import type { NotificationType } from "../data/types";
 
 const NOTIF_ICONS: Record<NotificationType, React.ElementType> = {
@@ -71,7 +72,8 @@ export function NotificationBell() {
 
   const handleNotifClick = (n: typeof notifications[0]) => {
     markAsRead(n.id);
-    if (n.link) navigate(n.link);
+    const link = normalizeNotificationLink(n.link);
+    if (link) navigate(link);
     setOpen(false);
   };
 

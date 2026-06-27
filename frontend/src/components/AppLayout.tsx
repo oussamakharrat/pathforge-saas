@@ -21,7 +21,7 @@ const PLAN_COLORS: Record<string, string> = {
 
 export function AppLayout({ children }: { children: ReactNode }) {
   const { authed, isLoading, plan, planLabel, canAccess } = useAuth();
-  const { requestUpgrade } = useUpgrade();
+  const { requestUpgrade, dismissUpgrade } = useUpgrade();
   const pathname = usePathname() ?? '/app/dashboard';
   const router = useRouter();
   const [sidebarExpanded, setSidebarExpanded] = useState(
@@ -33,16 +33,16 @@ export function AppLayout({ children }: { children: ReactNode }) {
     NAV_ITEMS.find((item) => item.id === currentPage)?.label ??
     (currentPage === 'settings' ? 'Settings' : 'Dashboard');
 
-  const [checkedAccess, setCheckedAccess] = useState(false);
   useEffect(() => {
-    queueMicrotask(() => {
-      if (!checkedAccess && !canAccess(currentPage)) {
-        const navItem = NAV_ITEMS.find((item) => item.id === currentPage);
-        requestUpgrade(currentPage, navItem?.label ?? currentPage);
-      }
-      setCheckedAccess(true);
-    });
-  }, [currentPage, canAccess, requestUpgrade, checkedAccess]);
+    if (isLoading || !authed) return;
+
+    if (!canAccess(currentPage)) {
+      const navItem = NAV_ITEMS.find((item) => item.id === currentPage);
+      requestUpgrade(currentPage, navItem?.label ?? currentPage);
+    } else {
+      dismissUpgrade();
+    }
+  }, [currentPage, canAccess, requestUpgrade, dismissUpgrade, isLoading, authed]);
 
   useEffect(() => {
     queueMicrotask(() => {
@@ -57,7 +57,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
   if (isLoading) return <PageLoading />;
   if (!authed) return null;
 
-  const showDashboardFallback = !canAccess(currentPage) && checkedAccess;
+  const showDashboardFallback = !canAccess(currentPage);
 
   return (
     <div className="flex min-h-screen bg-background">

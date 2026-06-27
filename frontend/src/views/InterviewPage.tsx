@@ -133,8 +133,17 @@ export default function InterviewPage() {
       setAnswer("");
       setLoading(false);
       if (qIndex + 1 >= questions.length) {
+        const newAnswers = [...answers, { q: questions[qIndex], a: answer, score, feedback }];
+        const avg = Math.round(newAnswers.reduce((s, a) => s + a.score, 0) / newAnswers.length);
         setScreen("scorecard");
-        completeMockInterview();
+        void completeMockInterview({
+          company,
+          role,
+          type,
+          score: avg,
+          feedback: `Completed ${type} mock interview with average score ${avg}/100`,
+          answers: newAnswers,
+        });
         toast.success("Interview complete! Scorecard ready.");
       } else {
         setQIndex(i => i + 1);

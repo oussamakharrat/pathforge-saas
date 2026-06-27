@@ -17,6 +17,8 @@ import {
   CreateInterviewDto,
   UpdateInterviewDto,
   CreateOfferDto,
+  UpdateApplicationNotesDto,
+  CreateMockInterviewDto,
 } from './dto/jobs.dto';
 
 @Controller('jobs')
@@ -80,6 +82,23 @@ export class JobsController {
     @Body() dto: UpdateApplicationStatusDto,
   ) {
     return this.service.updateApplicationStatus(user.id, id, dto);
+  }
+
+  @Patch('applications/:id')
+  updateNotes(
+    @CurrentUser() user: { id: string },
+    @Param('id') id: string,
+    @Body() dto: UpdateApplicationNotesDto,
+  ) {
+    return this.service.updateApplicationNotes(user.id, id, dto);
+  }
+
+  @Post('mock-interviews')
+  createMockInterview(
+    @CurrentUser() user: { id: string },
+    @Body() dto: CreateMockInterviewDto,
+  ) {
+    return this.service.createMockInterview(user.id, dto);
   }
 
   @Post('applications/:id/interviews')

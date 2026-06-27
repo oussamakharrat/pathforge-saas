@@ -68,13 +68,23 @@ export type KanbanCard = {
   logo: string;
 };
 
+export type GoalMilestone = {
+  id: string;
+  title: string;
+  description?: string;
+  completed: boolean;
+  order: number;
+};
+
 export type Goal = {
   id: number;
+  apiId: string;
   title: string;
   progress: number;
   deadline: string;
   steps: number;
   done: number;
+  milestones: GoalMilestone[];
 };
 
 export type Skill = {

@@ -32,6 +32,7 @@ interface JobsContextType {
   kanban: Record<KanbanCol, KanbanCard[]>;
   loading: boolean;
   refreshApplications: () => Promise<void>;
+  updateApplicationNotes: (cardId: string, notes: string) => Promise<void>;
   moveCard: (cardId: string, from: KanbanCol, to: KanbanCol) => Promise<void>;
   addCard: (col: KanbanCol, card: Omit<KanbanCard, 'id'>) => Promise<void>;
   removeCard: (cardId: string, col: KanbanCol) => Promise<void>;
@@ -127,9 +128,20 @@ export function JobsProvider({ children }: { children: ReactNode }) {
     }
   }, [refreshApplications]);
 
+  const updateApplicationNotes = useCallback(async (cardId: string, notes: string) => {
+    await api.updateApplicationNotes(cardId, notes);
+    setKanban((prev) => {
+      const next = { ...prev };
+      for (const col of Object.keys(next) as KanbanCol[]) {
+        next[col] = next[col].map((c) => (c.id === cardId ? { ...c, notes } : c));
+      }
+      return next;
+    });
+  }, []);
+
   return (
     <JobsContext.Provider
-      value={{ kanban, loading, refreshApplications, moveCard, addCard, removeCard, jobMatchInsights }}
+      value={{ kanban, loading, refreshApplications, moveCard, addCard, removeCard, updateApplicationNotes, jobMatchInsights }}
     >
       {children}
     </JobsContext.Provider>

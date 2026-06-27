@@ -68,6 +68,19 @@ export class UpdateApplicationStatusDto {
   @IsEnum(ApplicationStatus) status: ApplicationStatus;
 }
 
+export class UpdateApplicationNotesDto {
+  @IsOptional() @IsString() notes?: string;
+}
+
+export class CreateMockInterviewDto {
+  @IsString() company: string;
+  @IsString() role: string;
+  @IsString() type: string;
+  @IsInt() @Min(0) @Max(100) score: number;
+  @IsOptional() @IsString() feedback?: string;
+  @IsOptional() answers?: unknown[];
+}
+
 export class CreateInterviewDto {
   @IsEnum(InterviewType) type: InterviewType;
   @IsDateString() date: string;

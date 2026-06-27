@@ -3,6 +3,7 @@ import { NegotiationStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsHelper } from '../common/notifications.helper';
 import { DashboardProjector } from '../common/dashboard.projector';
+import { GamificationUnlockService } from '../common/gamification-unlock.service';
 import { assertFound, assertOwner } from '../common/assertions';
 import {
   CreateNegotiationDto,
@@ -15,6 +16,7 @@ export class NegotiationsService {
     private readonly prisma: PrismaService,
     private readonly notifications: NotificationsHelper,
     private readonly dashboard: DashboardProjector,
+    private readonly gamification: GamificationUnlockService,
   ) {}
 
   async findAll(userId: string) {
@@ -81,7 +83,7 @@ export class NegotiationsService {
       'Your salary negotiation is ready',
       negotiation.id,
       'negotiation',
-      '/negotiate',
+      '/app/negotiate',
     );
 
     return negotiation;
@@ -113,6 +115,7 @@ export class NegotiationsService {
     });
 
     if (dto.status === 'accepted') {
+      await this.gamification.onNegotiationAccepted(userId);
       await this.dashboard.refreshCareerMetrics(userId);
     }
 

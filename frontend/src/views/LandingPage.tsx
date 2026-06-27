@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { useNavigate } from "@/lib/router";
-import { toast } from "sonner";
 import {
   ArrowRight, PlayCircle, LayoutDashboard, Target, Zap, BookOpen, MessageSquare,
   Brain, Map, BarChart2, FileText, Mic, DollarSign, Sparkles,
@@ -16,16 +15,21 @@ import { SectionTitle } from "../components/SectionTitle";
 import { PricingCards } from "../components/PricingCards";
 import { BrandLogo } from "../components/BrandLogo";
 import { TESTIMONIALS, FAQS } from "../data/initial-data";
+import { useAuth } from "../contexts/AuthContext";
+import { UserAvatar } from "../components/UserAvatar";
 
 function scrollToSection(id: string) {
   const el = document.getElementById(id);
   if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
-function LandingNav() {
+function LandingNav({ onGetStarted }: { onGetStarted: () => void }) {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const navigate = useNavigate();
+  const { authed, isLoading, user, profile } = useAuth();
+
+  const displayName = user?.name ?? user?.email?.split("@")[0] ?? "User";
 
   useEffect(() => {
     const h = () => setScrolled(window.scrollY > 20);
@@ -51,8 +55,25 @@ function LandingNav() {
           ))}
         </div>
         <div className="flex items-center gap-2">
-          <Btn variant="ghost" size="sm" onClick={() => navigate("/login")} className="hidden md:flex">Sign In</Btn>
-          <Btn size="sm" onClick={() => navigate("/register")}>Get Started Free <ArrowRight className="w-3.5 h-3.5" /></Btn>
+          {!isLoading && authed ? (
+            <button
+              type="button"
+              onClick={() => navigate("/app/dashboard")}
+              className="hidden md:flex items-center gap-2 rounded-xl border border-border bg-white/80 px-3 py-1.5 shadow-sm transition-all hover:border-orange-200 hover:bg-orange-50/50"
+            >
+              <UserAvatar src={profile?.avatarUrl} name={displayName} size="sm" />
+              <span className="text-[13px] font-semibold max-w-[140px] truncate" style={{ color: CARBON }}>
+                {displayName}
+              </span>
+            </button>
+          ) : !isLoading ? (
+            <Btn variant="ghost" size="sm" onClick={() => navigate("/login")} className="hidden md:flex">
+              Sign In
+            </Btn>
+          ) : null}
+          <Btn size="sm" onClick={onGetStarted}>
+            {authed ? "Go to App" : "Get Started Free"} <ArrowRight className="w-3.5 h-3.5" />
+          </Btn>
           <button className="md:hidden p-2" onClick={() => setMobileOpen(!mobileOpen)} style={{ color: CARBON }}>
             {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
@@ -63,7 +84,23 @@ function LandingNav() {
           {["Features", "Pricing", "Services"].map(item => (
             <button key={item} onClick={() => { handleNavClick(item); setMobileOpen(false); }} className="block w-full text-left text-[14px] font-semibold py-2" style={{ color: CARBON }}>{item}</button>
           ))}
-          <Btn size="sm" full onClick={() => navigate("/register")}>Get Started Free</Btn>
+          {!isLoading && authed ? (
+            <button
+              type="button"
+              onClick={() => { navigate("/app/dashboard"); setMobileOpen(false); }}
+              className="flex w-full items-center gap-3 rounded-xl border border-border px-3 py-2.5"
+            >
+              <UserAvatar src={profile?.avatarUrl} name={displayName} size="sm" />
+              <span className="text-[14px] font-semibold truncate" style={{ color: CARBON }}>{displayName}</span>
+            </button>
+          ) : !isLoading ? (
+            <Btn variant="ghost" size="sm" full onClick={() => { navigate("/login"); setMobileOpen(false); }}>
+              Sign In
+            </Btn>
+          ) : null}
+          <Btn size="sm" full onClick={() => { onGetStarted(); setMobileOpen(false); }}>
+            {authed ? "Go to App" : "Get Started Free"}
+          </Btn>
         </div>
       )}
     </nav>
@@ -73,10 +110,16 @@ function LandingNav() {
 export default function LandingPage() {
   const [faqOpen, setFaqOpen] = useState<number | null>(0);
   const navigate = useNavigate();
+  const { authed, isLoading } = useAuth();
+
+  const handleGetStarted = () => {
+    if (isLoading) return;
+    navigate(authed ? "/app/dashboard" : "/login");
+  };
 
   return (
     <div className="bg-white">
-      <LandingNav />
+      <LandingNav onGetStarted={handleGetStarted} />
 
       {/* Hero */}
       <section className="relative min-h-screen flex flex-col items-center justify-center text-center pt-24 pb-20 px-6 md:px-8 overflow-hidden bg-white">
@@ -94,7 +137,7 @@ export default function LandingPage() {
             AI-powered career intelligence, personalized roadmaps, skill gap analysis, interview prep, and salary negotiation — built for ambitious engineers.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-16">
-            <Btn size="lg" onClick={() => navigate("/register")} className="shadow-xl" style={{ boxShadow: "0 8px 32px rgba(241,80,37,0.35)" }}>
+            <Btn size="lg" onClick={handleGetStarted} className="shadow-xl" style={{ boxShadow: "0 8px 32px rgba(241,80,37,0.35)" }}>
               Start Free <ArrowRight className="w-4 h-4" />
             </Btn>
             <Btn variant="outline" size="lg" onClick={() => navigate("/login")}><PlayCircle className="w-4 h-4" /> Explore App</Btn>
@@ -182,7 +225,7 @@ export default function LandingPage() {
       <section id="pricing" className="py-24 px-6 md:px-8" style={{ backgroundColor: ALABASTER }}>
         <div className="max-w-7xl mx-auto">
           <SectionTitle label="Pricing" title="Simple, transparent pricing" subtitle="Choose the plan that matches your current stage." />
-          <PricingCards onSelect={() => { navigate("/register"); toast.success("Creating your free account..."); }} />
+          <PricingCards onSelect={handleGetStarted} />
         </div>
       </section>
 
@@ -229,7 +272,7 @@ export default function LandingPage() {
           <h2 className="text-4xl md:text-5xl font-black text-white mb-5 tracking-tight">Ready to accelerate?</h2>
           <p className="text-[16px] text-white/80 mb-10 leading-relaxed">Join thousands of engineers growing faster, landing better roles, and earning more.</p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <button onClick={() => navigate("/register")} className="bg-white px-8 py-3.5 rounded-xl text-[14px] font-black hover:opacity-90 transition-all inline-flex items-center gap-2" style={{ color: FLAME }}>
+            <button onClick={handleGetStarted} className="bg-white px-8 py-3.5 rounded-xl text-[14px] font-black hover:opacity-90 transition-all inline-flex items-center gap-2" style={{ color: FLAME }}>
               Start Free Today <ArrowRight className="w-4 h-4" />
             </button>
             <button onClick={() => navigate("/pricing")} className="border-2 border-white/40 text-white px-8 py-3.5 rounded-xl text-[14px] font-bold hover:bg-white/10 transition-all">See All Plans</button>

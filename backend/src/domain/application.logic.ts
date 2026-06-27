@@ -31,6 +31,12 @@ export function validateStatusTransition(
     );
   }
 
+  if (to === ApplicationStatus.final_round && !hasInterviews) {
+    throw new BadRequestException(
+      'Cannot set final round status without at least one interview',
+    );
+  }
+
   if (to === ApplicationStatus.offer && !hasOffers) {
     throw new BadRequestException(
       'Cannot set offer status without at least one offer',

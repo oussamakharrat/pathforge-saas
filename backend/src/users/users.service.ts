@@ -1,6 +1,7 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { DashboardProjector } from '../common/dashboard.projector';
+import { GamificationUnlockService } from '../common/gamification-unlock.service';
 import { assertFound, assertOwner } from '../common/assertions';
 import {
   UpdateProfileDto,
@@ -13,6 +14,7 @@ export class UsersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly dashboard: DashboardProjector,
+    private readonly gamification: GamificationUnlockService,
   ) {}
 
   async getMe(userId: string) {
@@ -52,6 +54,7 @@ export class UsersService {
       });
     }
 
+    await this.gamification.onProfileCompleted(userId);
     return this.getMe(userId);
   }
 
@@ -84,6 +87,7 @@ export class UsersService {
     });
 
     await this.dashboard.refreshCareerMetrics(userId);
+    await this.gamification.onSkillsChanged(userId);
     return skill;
   }
 
@@ -134,7 +138,19 @@ export class UsersService {
     });
 
     await this.dashboard.refreshCareerMetrics(userId);
+    await this.gamification.onSkillsChanged(userId);
     return skill;
+  }
+
+  async deleteSkill(userId: string, skillId: string) {
+    const existing = assertFound(
+      await this.prisma.userSkill.findUnique({ where: { id: skillId } }),
+      'Skill',
+    );
+    assertOwner(existing.userId, userId);
+    await this.prisma.userSkill.delete({ where: { id: skillId } });
+    await this.dashboard.refreshCareerMetrics(userId);
+    return { deleted: true };
   }
 
   async listAchievements(userId: string) {

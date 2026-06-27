@@ -31,6 +31,7 @@ export const APPLICATION_PIPELINE: string[] = [
   'applied',
   'screening',
   'interview',
+  'final_round',
   'offer',
   'accepted',
   'rejected',

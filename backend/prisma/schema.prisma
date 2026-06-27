@@ -54,6 +54,7 @@ enum ApplicationStatus {
   applied
   screening
   interview
+  final_round
   offer
   rejected
   accepted

@@ -2,6 +2,7 @@ import { Injectable, BadRequestException } from '@nestjs/common';
 import { LearningPlanStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { DashboardProjector } from '../common/dashboard.projector';
+import { GamificationUnlockService } from '../common/gamification-unlock.service';
 import { assertFound, assertOwner } from '../common/assertions';
 import {
   CreateLearningPlanDto,
@@ -15,6 +16,7 @@ export class LearningPlansService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly dashboard: DashboardProjector,
+    private readonly gamification: GamificationUnlockService,
   ) {}
 
   private recalcProgress(items: { completed: boolean }[]) {
@@ -189,6 +191,29 @@ export class LearningPlansService {
     });
 
     await this.dashboard.refresh(userId);
+    if (allDone) {
+      await this.gamification.onLearningPlanCompleted(userId);
+    }
     return updated;
+  }
+
+  async removeItem(userId: string, planId: string, itemId: string) {
+    await this.findOne(userId, planId);
+    const item = assertFound(
+      await this.prisma.learningItem.findUnique({ where: { id: itemId } }),
+      'Learning item',
+    );
+    if (item.planId !== planId) {
+      throw new BadRequestException('Item does not belong to this plan');
+    }
+
+    await this.prisma.learningItem.delete({ where: { id: itemId } });
+
+    const items = await this.prisma.learningItem.findMany({ where: { planId } });
+    return this.prisma.learningPlan.update({
+      where: { id: planId },
+      data: { progress: this.recalcProgress(items) },
+      include: { items: { orderBy: { order: 'asc' } } },
+    });
   }
 }
