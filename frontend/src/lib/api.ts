@@ -4,6 +4,7 @@ interface AuthResponse {
   message: string;
   user: { id: string; email: string; name: string | null };
   token: string;
+  refreshToken?: string;
 }
 
 async function handleResponse<T>(res: Response): Promise<T> {
@@ -34,6 +35,34 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     ...init,
     headers: { ...getAuthHeaders(), ...init?.headers },
   });
+  if (res.status === 401 && typeof window !== 'undefined') {
+    const refreshToken = localStorage.getItem('refreshToken');
+    if (refreshToken && !path.includes('/auth/refresh')) {
+      try {
+        const refreshed = await fetch(`${API_BASE}/auth/refresh`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refreshToken }),
+        });
+        if (refreshed.ok) {
+          const data = await refreshed.json() as AuthResponse;
+          localStorage.setItem('token', data.token);
+          if (data.refreshToken) localStorage.setItem('refreshToken', data.refreshToken);
+          const retry = await fetch(`${API_BASE}${path}`, {
+            ...init,
+            headers: {
+              ...getAuthHeaders(),
+              Authorization: `Bearer ${data.token}`,
+              ...init?.headers,
+            },
+          });
+          return handleResponse<T>(retry);
+        }
+      } catch {
+        /* fall through */
+      }
+    }
+  }
   return handleResponse<T>(res);
 }
 
@@ -49,6 +78,27 @@ export const api = {
     return request<AuthResponse>('/auth/login', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
+    });
+  },
+
+  refreshToken(refreshToken: string) {
+    return request<AuthResponse>('/auth/refresh', {
+      method: 'POST',
+      body: JSON.stringify({ refreshToken }),
+    });
+  },
+
+  forgotPassword(email: string) {
+    return request<{ message: string; resetToken?: string }>('/auth/forgot-password', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    });
+  },
+
+  resetPassword(token: string, password: string) {
+    return request<{ message: string }>('/auth/reset-password', {
+      method: 'POST',
+      body: JSON.stringify({ token, password }),
     });
   },
 
@@ -96,6 +146,13 @@ export const api = {
     });
   },
 
+  addMilestone(goalId: string, title: string, description?: string) {
+    return request<Record<string, unknown>>(`/goals/${goalId}/milestones`, {
+      method: 'POST',
+      body: JSON.stringify({ title, description }),
+    });
+  },
+
   deleteSkill(id: string) {
     return request(`/users/me/skills/${id}`, { method: 'DELETE' });
   },
@@ -129,6 +186,13 @@ export const api = {
 
   deleteLearningItem(planId: string, itemId: string) {
     return request(`/learning-plans/${planId}/items/${itemId}`, { method: 'DELETE' });
+  },
+
+  addLearningItem(planId: string, data: Record<string, unknown>) {
+    return request<Record<string, unknown>>(`/learning-plans/${planId}/items`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
   },
 
   getPortfolio() {
@@ -177,6 +241,10 @@ export const api = {
     });
   },
 
+  deleteApplication(id: string) {
+    return request(`/jobs/applications/${id}`, { method: 'DELETE' });
+  },
+
   createInterview(applicationId: string, data: Record<string, unknown>) {
     return request<Record<string, unknown>>(`/jobs/applications/${applicationId}/interviews`, {
       method: 'POST',
@@ -215,6 +283,13 @@ export const api = {
 
   updateNegotiation(id: string, data: Record<string, unknown>) {
     return request<Record<string, unknown>>(`/negotiations/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
+  },
+
+  analyzeNegotiation(data: Record<string, unknown>) {
+    return request<Record<string, unknown>>('/negotiations/analyze', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
   },
 
   getResumes() {
@@ -332,5 +407,46 @@ export const api = {
 
   getBadges() {
     return request<Record<string, unknown>[]>('/users/me/badges');
+  },
+
+  markAchievementSeen(id: string) {
+    return request(`/users/me/achievements/${id}/seen`, { method: 'PATCH' });
+  },
+
+  markBadgeSeen(id: string) {
+    return request(`/users/me/badges/${id}/seen`, { method: 'PATCH' });
+  },
+
+  purchaseService(service: string) {
+    return request<Record<string, unknown>>('/users/me/purchased-services', {
+      method: 'POST',
+      body: JSON.stringify({ service }),
+    });
+  },
+
+  exportUserData() {
+    return request<Record<string, unknown>>('/users/me/export');
+  },
+
+  deleteAccount() {
+    return request('/users/me', { method: 'DELETE' });
+  },
+
+  addResumeSection(resumeId: string, data: Record<string, unknown>) {
+    return request<Record<string, unknown>>(`/resumes/${resumeId}/sections`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  updateResumeSection(resumeId: string, sectionId: string, data: Record<string, unknown>) {
+    return request<Record<string, unknown>>(`/resumes/${resumeId}/sections/${sectionId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  },
+
+  getCommunityPost(id: string) {
+    return request<Record<string, unknown>>(`/community/posts/${id}`);
   },
 };

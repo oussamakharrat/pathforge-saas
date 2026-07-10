@@ -22,11 +22,14 @@ const CATEGORIES = [
 ];
 
 export default function CommunityPage() {
-  const { threads, loading, createThread, likeThread } = useCommunity();
+  const { threads, loading, createThread, likeThread, loadThread, addComment } = useCommunity();
   const [category, setCategory] = useState("all");
   const [search, setSearch] = useState("");
   const [showNewThread, setShowNewThread] = useState(false);
   const [newTitle, setNewTitle] = useState("");
+  const [selectedThread, setSelectedThread] = useState<string | null>(null);
+  const [threadDetail, setThreadDetail] = useState<Record<string, unknown> | null>(null);
+  const [commentText, setCommentText] = useState("");
 
   const filtered = threads.filter(t => {
     const catMatch = category === "all" || t.category === category;
@@ -52,6 +55,12 @@ export default function CommunityPage() {
     void createThread(newTitle, category === "all" ? "general" : category);
     setNewTitle("");
     setShowNewThread(false);
+  };
+
+  const handleOpenThread = async (apiId: string) => {
+    setSelectedThread(apiId);
+    const detail = await loadThread(apiId);
+    setThreadDetail(detail);
   };
 
   return (
@@ -85,7 +94,7 @@ export default function CommunityPage() {
           ) : sorted.length === 0 ? (
             <EmptyState icon={<MessageCircle className="w-12 h-12" style={{ color: FLAME }} />} title="No discussions yet" description="Be the first to start a conversation." action={{ label: "New Thread", onClick: () => setShowNewThread(true) }} />
           ) : sorted.map(t => (
-            <Card key={t.apiId} className="p-4 flex items-start gap-3">
+            <Card key={t.apiId} className="p-4 flex items-start gap-3 cursor-pointer" onClick={() => void handleOpenThread(t.apiId)}>
               <div className="w-9 h-9 rounded-xl flex items-center justify-center text-[11px] font-black text-white flex-shrink-0" style={{ backgroundColor: CARBON }}>{t.avatar}</div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1 flex-wrap">
@@ -101,7 +110,7 @@ export default function CommunityPage() {
                 </div>
               </div>
               <div className="flex items-center gap-2 flex-shrink-0">
-                <button onClick={() => void likeThread(t.apiId)} className="flex items-center gap-1 text-[11px] font-bold text-muted-foreground hover:text-red-500 transition-all">
+                <button onClick={(e) => { e.stopPropagation(); void likeThread(t.apiId); }} className="flex items-center gap-1 text-[11px] font-bold text-muted-foreground hover:text-red-500 transition-all">
                   <Heart className="w-3.5 h-3.5" /> {t.likes}
                 </button>
                 <ChevronRight className="w-4 h-4 text-muted-foreground" />
@@ -125,6 +134,34 @@ export default function CommunityPage() {
           </Card>
         </div>
       </div>
+
+      {selectedThread && threadDetail && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => { setSelectedThread(null); setThreadDetail(null); }} />
+          <Card className="relative w-full max-w-lg p-6 z-10 max-h-[80vh] overflow-y-auto" hover={false}>
+            <h2 className="text-[16px] font-black mb-2" style={{ color: CARBON }}>{String(threadDetail.title)}</h2>
+            <p className="text-[13px] text-muted-foreground mb-4">{String(threadDetail.body ?? "")}</p>
+            <h3 className="text-[12px] font-black mb-2" style={{ color: CARBON }}>Comments</h3>
+            <div className="space-y-2 mb-4 max-h-40 overflow-y-auto">
+              {((threadDetail.comments as Record<string, unknown>[]) ?? []).map((c) => (
+                <div key={String(c.id)} className="p-2 rounded-xl bg-secondary text-[12px]">{String(c.body)}</div>
+              ))}
+              {!(threadDetail.comments as unknown[])?.length && (
+                <p className="text-[12px] text-muted-foreground italic">No comments yet.</p>
+              )}
+            </div>
+            <textarea value={commentText} onChange={e => setCommentText(e.target.value)} rows={2} placeholder="Add a comment..."
+              className="w-full rounded-xl border border-border text-[13px] px-3 py-2 mb-3 resize-none" />
+            <Btn full onClick={async () => {
+              if (!commentText.trim() || !selectedThread) return;
+              await addComment(selectedThread, commentText.trim());
+              setCommentText("");
+              const detail = await loadThread(selectedThread);
+              setThreadDetail(detail);
+            }}>Post Comment</Btn>
+          </Card>
+        </div>
+      )}
 
       {showNewThread && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">

@@ -11,6 +11,7 @@ import { Bar } from "../components/Bar";
 import { Field } from "../components/Field";
 import { PageHeader } from "../components/PageHeader";
 import { useAuth } from "../contexts/AuthContext";
+import { api } from "@/lib/api";
 import { useCareerData } from "../contexts/CareerDataContext";
 import { prepareAvatarImage } from "../lib/avatar-image";
 import { UserAvatar } from "../components/UserAvatar";
@@ -20,6 +21,30 @@ const PLAN_DETAILS: Record<Plan, { tagline: string; aiLimit: number; resumeLimit
   free: { tagline: "5 AI messages/month", aiLimit: 5, resumeLimit: 1, jobLimit: 10 },
   pro: { tagline: "Unlimited AI coaching", aiLimit: 999, resumeLimit: 999, jobLimit: 999 },
   premium: { tagline: "Full career accelerator", aiLimit: 999, resumeLimit: 999, jobLimit: 999 },
+};
+
+const PLAN_STYLE: Record<Plan, { bg: string; border: string; badgeBg: string; badgeColor: string; accent: string }> = {
+  free: {
+    bg: "rgba(107,114,128,0.05)",
+    border: "rgba(107,114,128,0.22)",
+    badgeBg: "rgba(107,114,128,0.14)",
+    badgeColor: "#4B5563",
+    accent: "#6B7280",
+  },
+  pro: {
+    bg: "rgba(241,80,37,0.06)",
+    border: "rgba(241,80,37,0.28)",
+    badgeBg: "rgba(241,80,37,0.14)",
+    badgeColor: FLAME,
+    accent: FLAME,
+  },
+  premium: {
+    bg: "rgba(139,92,246,0.07)",
+    border: "rgba(139,92,246,0.3)",
+    badgeBg: "rgba(139,92,246,0.16)",
+    badgeColor: "#6D28D9",
+    accent: "#7C3AED",
+  },
 };
 
 function computeProfileCompletion(
@@ -356,13 +381,29 @@ export default function SettingsPage() {
 
       {activeTab === "billing" && (
         <div className="space-y-4">
-          <Card className="p-5" hover={false}>
+          <Card
+            className="p-5"
+            hover={false}
+            style={{
+              borderColor: PLAN_STYLE[plan].border,
+              backgroundColor: PLAN_STYLE[plan].bg,
+              boxShadow: `inset 4px 0 0 0 ${PLAN_STYLE[plan].accent}`,
+            }}
+          >
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="text-[11px] font-medium uppercase tracking-[0.22em]" style={{ color: FLAME }}>Current Plan</p>
-                <h3 className="mt-1 text-[15px] font-semibold" style={{ color: CARBON }}>{planLabel} · {planInfo.tagline}</h3>
+                <div className="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                  <span className="text-[26px] font-black leading-none" style={{ color: PLAN_STYLE[plan].accent }}>{planLabel}</span>
+                  <span className="text-[14px] font-medium text-muted-foreground">· {planInfo.tagline}</span>
+                </div>
               </div>
-              <span className="inline-flex w-fit items-center rounded-full bg-slate-50 px-3 py-1 text-[11px] font-semibold" style={{ color: CARBON }}>{planLabel}</span>
+              <span
+                className="inline-flex w-fit items-center rounded-full px-4 py-1.5 text-[12px] font-black uppercase tracking-[0.08em]"
+                style={{ backgroundColor: PLAN_STYLE[plan].badgeBg, color: PLAN_STYLE[plan].badgeColor }}
+              >
+                {planLabel}
+              </span>
             </div>
             {plan === "free" && (
               <div className="mt-4"><Btn full onClick={() => navigate("/pricing")}><Award className="h-4 w-4" /> Upgrade to Pro — $29/mo</Btn></div>
@@ -411,11 +452,41 @@ export default function SettingsPage() {
             <p className="mt-1 text-[12px] text-muted-foreground">These actions cannot be undone.</p>
           </div>
           <div className="space-y-3">
-            <button onClick={() => toast.info("Data export initiated — check your email in 5 minutes")} className="flex w-full items-center justify-between rounded-2xl border border-border px-4 py-3.5 transition-all hover:bg-secondary">
+            <button onClick={async () => {
+              try {
+                const data = await api.exportUserData();
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `pathforge-export-${new Date().toISOString().split("T")[0]}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+                toast.success("Data exported");
+              } catch {
+                toast.error("Export failed");
+              }
+            }} className="flex w-full items-center justify-between rounded-2xl border border-border px-4 py-3.5 transition-all hover:bg-secondary">
               <div className="text-left"><p className="text-[13px] font-semibold" style={{ color: CARBON }}>Export All Data</p><p className="text-[11px] text-muted-foreground">Download a copy of all your career data</p></div>
               <ExternalLink className="h-4 w-4 text-muted-foreground" />
             </button>
-            <button onClick={() => { toast.error("Are you sure? This cannot be undone.", { action: { label: "Yes, delete", onClick: () => { logout(); navigate("/"); } } }); }} className="flex w-full items-center justify-between rounded-2xl border border-red-200 px-4 py-3.5 transition-all hover:bg-red-50">
+            <button onClick={() => {
+              toast.error("Delete your account permanently?", {
+                action: {
+                  label: "Yes, delete",
+                  onClick: async () => {
+                    try {
+                      await api.deleteAccount();
+                      logout();
+                      navigate("/");
+                      toast.success("Account deleted");
+                    } catch {
+                      toast.error("Failed to delete account");
+                    }
+                  },
+                },
+              });
+            }} className="flex w-full items-center justify-between rounded-2xl border border-red-200 px-4 py-3.5 transition-all hover:bg-red-50">
               <div className="text-left"><p className="text-[13px] font-semibold text-red-600">Delete Account</p><p className="text-[11px] text-muted-foreground">Permanently delete your account and all data</p></div>
               <X className="h-4 w-4 text-red-400" />
             </button>

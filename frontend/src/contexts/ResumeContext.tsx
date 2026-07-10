@@ -19,9 +19,11 @@ interface ResumeContextType {
   resumes: ResumeData[];
   loading: boolean;
   refresh: () => Promise<void>;
-  createResume: (title: string) => Promise<void>;
+  createResume: (title: string, sections?: { type: string; title: string; content: string }[]) => Promise<ResumeData | null>;
   updateResume: (id: string, data: Record<string, unknown>) => Promise<void>;
   deleteResume: (id: string) => Promise<void>;
+  addSection: (resumeId: string, section: { type: string; title: string; content: string }) => Promise<void>;
+  updateSection: (resumeId: string, sectionId: string, data: { title?: string; content?: string }) => Promise<void>;
 }
 
 const ResumeContext = createContext<ResumeContextType | null>(null);
@@ -48,13 +50,34 @@ export function ResumeProvider({ children }: { children: ReactNode }) {
     queueMicrotask(() => { void refresh(); });
   }, [refresh]);
 
-  const createResume = useCallback(async (title: string) => {
+  const createResume = useCallback(async (title: string, sections?: { type: string; title: string; content: string }[]) => {
     try {
-      await api.createResume({ title, sections: [] });
+      const created = await api.createResume({ title, sections: sections ?? [] });
       toast.success('Resume created');
       await refresh();
+      return apiResumeToLegacy(created);
     } catch {
       toast.error('Failed to create resume');
+      return null;
+    }
+  }, [refresh]);
+
+  const addSection = useCallback(async (resumeId: string, section: { type: string; title: string; content: string }) => {
+    try {
+      await api.addResumeSection(resumeId, section);
+      toast.success('Section added');
+      await refresh();
+    } catch {
+      toast.error('Failed to add section');
+    }
+  }, [refresh]);
+
+  const updateSection = useCallback(async (resumeId: string, sectionId: string, data: { title?: string; content?: string }) => {
+    try {
+      await api.updateResumeSection(resumeId, sectionId, data);
+      await refresh();
+    } catch {
+      toast.error('Failed to update section');
     }
   }, [refresh]);
 
@@ -78,7 +101,7 @@ export function ResumeProvider({ children }: { children: ReactNode }) {
   }, [refresh]);
 
   return (
-    <ResumeContext.Provider value={{ resumes, loading, refresh, createResume, updateResume, deleteResume }}>
+    <ResumeContext.Provider value={{ resumes, loading, refresh, createResume, updateResume, deleteResume, addSection, updateSection }}>
       {children}
     </ResumeContext.Provider>
   );

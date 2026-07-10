@@ -36,6 +36,10 @@ export class GamificationUnlockService {
     // Applications feed dashboard metrics; no standalone achievement in catalog.
   }
 
+  async onCommunityEngagement(userId: string) {
+    await this.unlockBadge(userId, 'Networker');
+  }
+
   async onLearningPlanCompleted(userId: string) {
     await this.unlockBadge(userId, 'Learner');
   }

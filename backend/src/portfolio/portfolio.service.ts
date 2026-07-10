@@ -1,6 +1,7 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { PortfolioStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { GamificationUnlockService } from '../common/gamification-unlock.service';
 import { assertFound, assertOwner } from '../common/assertions';
 import { MAX_FEATURED_PROJECTS } from '../domain/types';
 import {
@@ -10,7 +11,10 @@ import {
 
 @Injectable()
 export class PortfolioService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly gamification: GamificationUnlockService,
+  ) {}
 
   async findAll(userId: string) {
     return this.prisma.portfolioProject.findMany({
@@ -55,7 +59,7 @@ export class PortfolioService {
   async create(userId: string, dto: CreatePortfolioProjectDto) {
     await this.enforceFeaturedLimit(userId, dto.featured ?? false);
 
-    return this.prisma.portfolioProject.create({
+    const project = await this.prisma.portfolioProject.create({
       data: {
         userId,
         title: dto.title,
@@ -78,6 +82,8 @@ export class PortfolioService {
       },
       include: { skills: { include: { skillCatalog: true } } },
     });
+    await this.gamification.onPortfolioUpdated(userId);
+    return project;
   }
 
   async update(userId: string, id: string, dto: UpdatePortfolioProjectDto) {
@@ -98,7 +104,7 @@ export class PortfolioService {
       }
     }
 
-    return this.prisma.portfolioProject.update({
+    const project = await this.prisma.portfolioProject.update({
       where: { id },
       data: {
         title: dto.title,
@@ -113,6 +119,8 @@ export class PortfolioService {
       },
       include: { skills: { include: { skillCatalog: true } } },
     });
+    await this.gamification.onPortfolioUpdated(userId);
+    return project;
   }
 
   async remove(userId: string, id: string) {

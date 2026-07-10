@@ -25,6 +25,55 @@ export class LearningPlansService {
     return Math.round((done / items.length) * 100);
   }
 
+  private async applySkillBoost(
+    userId: string,
+    planId: string,
+    item: { tag: string; skillBoostAmount: number },
+  ) {
+    const boost = item.skillBoostAmount > 0 ? item.skillBoostAmount : 5;
+    const plan = await this.prisma.learningPlan.findUnique({
+      where: { id: planId },
+      include: { skills: true },
+    });
+    if (!plan) return;
+
+    const catalogIds = new Set(plan.skills.map((s) => s.skillCatalogId));
+
+    if (item.tag) {
+      const catalog = await this.prisma.skillCatalog.findFirst({
+        where: { name: { equals: item.tag, mode: 'insensitive' } },
+      });
+      if (catalog) catalogIds.add(catalog.id);
+    }
+
+    for (const skillCatalogId of catalogIds) {
+      const existing = await this.prisma.userSkill.findUnique({
+        where: { userId_skillCatalogId: { userId, skillCatalogId } },
+      });
+      if (existing) {
+        await this.prisma.userSkill.update({
+          where: { id: existing.id },
+          data: {
+            currentLevel: Math.min(100, existing.currentLevel + boost),
+            lastAssessed: new Date(),
+          },
+        });
+      } else {
+        await this.prisma.userSkill.create({
+          data: {
+            userId,
+            skillCatalogId,
+            currentLevel: Math.min(100, boost),
+            targetLevel: 80,
+          },
+        });
+      }
+    }
+
+    await this.gamification.onSkillsChanged(userId);
+    await this.dashboard.refreshCareerMetrics(userId);
+  }
+
   async findAll(userId: string) {
     return this.prisma.learningPlan.findMany({
       where: { userId },
@@ -171,6 +220,10 @@ export class LearningPlansService {
       where: { id: itemId },
       data: { completed, completedAt: completed ? new Date() : null },
     });
+
+    if (completed && !item.completed) {
+      await this.applySkillBoost(userId, planId, item);
+    }
 
     const items = await this.prisma.learningItem.findMany({
       where: { planId },

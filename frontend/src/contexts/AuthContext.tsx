@@ -66,6 +66,7 @@ function mapCareerProfile(
     referralSource: 'other',
     biggestChallenges: [],
     onboardingComplete: Boolean(cp?.onboardingComplete),
+    purchasedServices: (cp?.purchasedServices as string[]) ?? [],
   };
 }
 
@@ -133,6 +134,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = useCallback(async (email: string, password: string) => {
     const res = await api.login(email, password);
     localStorage.setItem('token', res.token);
+    if (res.refreshToken) localStorage.setItem('refreshToken', res.refreshToken);
     setUser({
       id: res.user.id,
       email: res.user.email,
@@ -147,6 +149,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const register = useCallback(async (email: string, password: string, name?: string) => {
     const res = await api.register(email, password, name);
     localStorage.setItem('token', res.token);
+    if (res.refreshToken) localStorage.setItem('refreshToken', res.refreshToken);
     setUser({
       id: res.user.id,
       email: res.user.email,
@@ -159,6 +162,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(() => {
     localStorage.removeItem('token');
+    localStorage.removeItem('refreshToken');
     setUser(null);
     setPlanState('free');
     setProfile(null);

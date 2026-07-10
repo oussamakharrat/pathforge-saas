@@ -54,6 +54,14 @@ export const COL_TO_STATUS: Record<KanbanCol, string> = {
 
 export function apiGoalToLegacy(g: Record<string, unknown>): Goal {
   const milestones = (g.milestones as GoalMilestone[]) ?? [];
+  const goalSkills = (g.skills as Record<string, unknown>[]) ?? [];
+  const linkedSkills = goalSkills.map((gs) => {
+    const catalog = (gs.skillCatalog as Record<string, unknown>) ?? {};
+    return {
+      id: String(gs.skillCatalogId ?? catalog.id ?? ''),
+      name: String(catalog.name ?? 'Skill'),
+    };
+  }).filter((s) => s.id);
   return {
     id: toLegacyId(String(g.id)),
     apiId: String(g.id),
@@ -63,6 +71,7 @@ export function apiGoalToLegacy(g: Record<string, unknown>): Goal {
     steps: milestones.length || 1,
     done: milestones.filter((m) => m.completed).length,
     milestones,
+    linkedSkills,
   };
 }
 
@@ -128,6 +137,7 @@ export function apiApplicationsToKanban(
       match: Number(job.matchScore ?? 50),
       notes: String(app.notes ?? ''),
       logo: String(job.companyLogo ?? company.slice(0, 2).toUpperCase()),
+      goalId: app.goalId ? String(app.goalId) : undefined,
     };
     const col = STATUS_TO_COL[String(app.status)] ?? 'saved';
     data[col].push(card);
@@ -224,6 +234,7 @@ export function apiAchievementDefToLegacy(d: Record<string, unknown>, earned?: R
     criteria: String(d.criteria),
     unlocked: Boolean(earned),
     unlockedDate: earned?.unlockedAt ? String(earned.unlockedAt).split('T')[0] : undefined,
+    earnedId: earned?.id ? String(earned.id) : undefined,
     seen: Boolean(earned?.seen),
   };
 }
@@ -240,6 +251,7 @@ export function apiBadgeDefToLegacy(d: Record<string, unknown>, earned?: Record<
     requirements: String(d.requirements),
     earned: Boolean(earned),
     earnedAt: earned?.earnedAt ? String(earned.earnedAt) : undefined,
+    earnedId: earned?.id ? String(earned.id) : undefined,
     seen: Boolean(earned?.seen),
   };
 }

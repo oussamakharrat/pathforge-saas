@@ -16,8 +16,23 @@ import { EmptyState } from "../components/EmptyState";
 import { SkillAutocomplete, type SkillCatalogOption } from "../components/SkillAutocomplete";
 import { useCareerData } from "../contexts/CareerDataContext";
 import { useGamification } from "../contexts/GamificationContext";
+import { SKILL_QUIZ_DATA } from "../data/initial-data";
+import type { QuizQuestion } from "../data/types";
 
 const NEW_SKILL_CATS = ["Language", "Frontend", "Backend", "Database", "API", "DevOps", "Architecture", "Cloud", "Quality", "Mobile", "AI/ML", "Tools", "Soft Skill"];
+
+function getQuizQuestions(skillName: string): QuizQuestion[] {
+  if (SKILL_QUIZ_DATA[skillName]) return SKILL_QUIZ_DATA[skillName];
+  const key = Object.keys(SKILL_QUIZ_DATA).find(
+    (k) => skillName.toLowerCase().includes(k.toLowerCase()) || k.toLowerCase().includes(skillName.toLowerCase()),
+  );
+  if (key) return SKILL_QUIZ_DATA[key];
+  return [
+    { q: `What best describes your hands-on experience with ${skillName}?`, options: ["No experience", "Tutorial level", "Production projects", "Expert / mentor others"], correct: 2 },
+    { q: `How often do you use ${skillName} in your current work?`, options: ["Never", "Occasionally", "Weekly", "Daily"], correct: 3 },
+    { q: `Could you explain a real problem you solved using ${skillName}?`, options: ["Not yet", "Only in theory", "Yes, with guidance", "Yes, independently"], correct: 3 },
+  ];
+}
 
 export default function SkillsPage() {
   const navigate = useNavigate();
@@ -30,6 +45,10 @@ export default function SkillsPage() {
   const [showEdit, setShowEdit] = useState(false);
   const [editSkill, setEditSkill] = useState({ name: "", cat: "", level: "Intermediate" as string, pct: 55 });
   const [confirmDeleteSkill, setConfirmDeleteSkill] = useState<string | null>(null);
+  const [quizSkill, setQuizSkill] = useState<string | null>(null);
+  const [quizIndex, setQuizIndex] = useState(0);
+  const [quizAnswers, setQuizAnswers] = useState<number[]>([]);
+  const [quizDone, setQuizDone] = useState(false);
   const cats = ["All", ...Array.from(new Set(skills.map(s => s.cat)))];
   const list = skills.filter(s => (filter === "All" || s.cat === filter) && s.name.toLowerCase().includes(search.toLowerCase()));
 
@@ -41,8 +60,33 @@ export default function SkillsPage() {
   }));
 
   const startQuiz = (skillName: string) => {
-    toast.info(`Skill assessments for ${skillName} will use your profile level (${skills.find(s => s.name === skillName)?.pct ?? 0}%).`);
-    submitQuiz(skillName, 2, 3);
+    setQuizSkill(skillName);
+    setQuizIndex(0);
+    setQuizAnswers([]);
+    setQuizDone(false);
+  };
+
+  const quizQuestions = quizSkill ? getQuizQuestions(quizSkill) : [];
+  const currentQ = quizQuestions[quizIndex];
+
+  const answerQuiz = (optionIdx: number) => {
+    if (!quizSkill || !currentQ) return;
+    const nextAnswers = [...quizAnswers, optionIdx];
+    setQuizAnswers(nextAnswers);
+    if (quizIndex + 1 >= quizQuestions.length) {
+      const correct = nextAnswers.filter((a, i) => a === quizQuestions[i].correct).length;
+      submitQuiz(quizSkill, correct, quizQuestions.length);
+      setQuizDone(true);
+    } else {
+      setQuizIndex(quizIndex + 1);
+    }
+  };
+
+  const closeQuiz = () => {
+    setQuizSkill(null);
+    setQuizIndex(0);
+    setQuizAnswers([]);
+    setQuizDone(false);
   };
 
   return (
@@ -238,6 +282,35 @@ export default function SkillsPage() {
             <Btn full onClick={() => { updateSkill(editSkill.name, { cat: editSkill.cat, level: editSkill.level, pct: editSkill.pct }); setShowEdit(false); }}>Save Changes</Btn>
           </div>
         </div>
+      </Modal>
+
+      <Modal open={quizSkill !== null} onClose={closeQuiz} title={quizDone ? "Quiz Complete" : `Quiz: ${quizSkill}`}>
+        {quizDone ? (
+          <div className="text-center space-y-4">
+            <p className="text-[14px] font-black" style={{ color: CARBON }}>
+              {quizAnswers.filter((a, i) => a === quizQuestions[i]?.correct).length}/{quizQuestions.length} correct
+            </p>
+            <p className="text-[13px] text-muted-foreground">Your skill level has been updated based on your score.</p>
+            <Btn full onClick={closeQuiz}>Done</Btn>
+          </div>
+        ) : currentQ ? (
+          <div className="space-y-4">
+            <p className="text-[11px] text-muted-foreground">Question {quizIndex + 1} of {quizQuestions.length}</p>
+            <p className="text-[14px] font-black" style={{ color: CARBON }}>{currentQ.q}</p>
+            <div className="space-y-2">
+              {currentQ.options.map((opt, i) => (
+                <button
+                  key={i}
+                  onClick={() => answerQuiz(i)}
+                  className="w-full text-left p-3 rounded-xl border border-border hover:border-orange-200 text-[13px] font-medium transition-all"
+                  style={{ color: CARBON }}
+                >
+                  {opt}
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : null}
       </Modal>
 
       <Modal open={confirmDeleteSkill !== null} onClose={() => setConfirmDeleteSkill(null)} maxWidth="sm" className="text-center">

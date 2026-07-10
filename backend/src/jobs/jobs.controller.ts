@@ -101,6 +101,14 @@ export class JobsController {
     return this.service.createMockInterview(user.id, dto);
   }
 
+  @Delete('applications/:id')
+  deleteApplication(
+    @CurrentUser() user: { id: string },
+    @Param('id') id: string,
+  ) {
+    return this.service.deleteApplication(user.id, id);
+  }
+
   @Post('applications/:id/interviews')
   addInterview(
     @CurrentUser() user: { id: string },

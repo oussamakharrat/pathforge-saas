@@ -26,7 +26,7 @@ const RARITY_CONFIG: Record<string, { color: string; bg: string; label: string }
 };
 
 export default function BadgesPage() {
-  const { badges, loading, streakDays } = useGamification();
+  const { badges, loading, streakDays, markBadgeSeen } = useGamification();
   const [filter, setFilter] = useState<string>("all");
 
   const categories = useMemo(() => {
@@ -62,7 +62,8 @@ export default function BadgesPage() {
             const CatIcon = CATEGORY_ICONS[b.category] ?? Target;
             const rarity = RARITY_CONFIG[b.rarity] ?? RARITY_CONFIG.bronze;
             return (
-              <Card key={b.id} className={cn("p-4 transition-all", !b.earned && "opacity-60")} hover={false}>
+              <Card key={b.id} className={cn("p-4 transition-all cursor-pointer", !b.earned && "opacity-60")} hover={false}
+                onClick={() => { if (b.earned && b.earnedId) void markBadgeSeen(b.earnedId); }}>
                 <div className="flex items-start gap-3">
                   <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-xl flex-shrink-0" style={{ backgroundColor: b.earned ? rarity.bg : "rgba(0,0,0,0.04)" }}>
                     {b.earned ? b.icon : "🔒"}

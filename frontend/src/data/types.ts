@@ -66,6 +66,7 @@ export type KanbanCard = {
   match: number;
   notes: string;
   logo: string;
+  goalId?: string;
 };
 
 export type GoalMilestone = {
@@ -74,6 +75,11 @@ export type GoalMilestone = {
   description?: string;
   completed: boolean;
   order: number;
+};
+
+export type GoalLinkedSkill = {
+  id: string;
+  name: string;
 };
 
 export type Goal = {
@@ -85,6 +91,14 @@ export type Goal = {
   steps: number;
   done: number;
   milestones: GoalMilestone[];
+  linkedSkills?: GoalLinkedSkill[];
+};
+
+export type ScoreSnapshot = {
+  date: string;
+  score: number;
+  skills: number;
+  applications: number;
 };
 
 export type Skill = {
@@ -152,6 +166,7 @@ export type UserProfile = {
   referralSource: "social-media" | "google" | "friend" | "podcast" | "blog" | "other";
   biggestChallenges: string[];
   onboardingComplete: boolean;
+  purchasedServices?: string[];
 };
 
 export type KanbanData = Record<KanbanCol, KanbanCard[]>;

@@ -10,7 +10,7 @@ import {
   type ReactNode,
 } from 'react';
 import { toast } from 'sonner';
-import type { Goal, Skill, LearningStep, OutcomeMetrics, QuizResult } from '../data/types';
+import type { Goal, Skill, LearningStep, OutcomeMetrics, QuizResult, ScoreSnapshot } from '../data/types';
 import { useNotifications } from './NotificationContext';
 import { useAuth } from './AuthContext';
 import { api } from '@/lib/api';
@@ -35,6 +35,7 @@ import { buildRelationshipGraph, buildImpactChains } from '@/domain/services/rel
 import { fromLegacySkill, fromLegacyGoal } from '../domain-adapter/adapters';
 import type { RelationshipLink, ImpactChain } from '@/domain/services';
 import { useGamification } from './GamificationContext';
+import { usePersistedState } from '@/hooks/usePersistedState';
 
 interface CareerDataContextType {
   goals: Goal[];
@@ -42,6 +43,7 @@ interface CareerDataContextType {
   learningSteps: LearningStep[];
   outcomes: OutcomeMetrics;
   quizResults: QuizResult[];
+  scoreHistory: ScoreSnapshot[];
   purchasedServices: string[];
   loading: boolean;
   dashboardMetrics: ReturnType<typeof apiMetricsToScores>;
@@ -50,13 +52,15 @@ interface CareerDataContextType {
   setLearningSteps: (steps: LearningStep[]) => void;
   refresh: () => Promise<void>;
   toggleStep: (stepId: number) => void;
-  addGoal: (title: string, deadline: string) => void;
-  updateGoal: (id: number, updates: Partial<Pick<Goal, 'title' | 'deadline'>>) => void;
+  addGoal: (title: string, deadline: string, skillCatalogIds?: string[]) => void;
+  updateGoal: (id: number, updates: Partial<Pick<Goal, 'title' | 'deadline'>> & { skillCatalogIds?: string[] }) => void;
   deleteGoal: (id: number) => void;
   addSkill: (name: string, cat: string, level: string, pct: number) => void;
   updateSkill: (name: string, updates: Partial<Pick<Skill, 'level' | 'pct' | 'cat'>>) => void;
   deleteSkill: (name: string) => void;
   deleteLearningStep: (stepId: number) => void;
+  addMilestone: (goalId: number, title: string) => void;
+  addLearningItem: (goalLegacyId: number | null, title: string, tag: string) => void;
   toggleMilestone: (goalId: number, milestoneId: string, completed?: boolean) => void;
   trackApplication: () => void;
   trackInterview: () => void;
@@ -93,6 +97,10 @@ function normalizeTargetDate(deadline: string): string | undefined {
 }
 
 export function CareerDataProvider({ children }: { children: ReactNode }) {
+  const { addNotification } = useNotifications();
+  const { authed, profile } = useAuth();
+  const { referenceSkills, refresh: refreshReferenceSkills, refresh: refreshGamification } = useGamification();
+
   const [goals, setGoals] = useState<Goal[]>([]);
   const [skills, setSkills] = useState<Skill[]>([]);
   const [learningSteps, setLearningSteps] = useState<LearningStepMeta[]>([]);
@@ -103,15 +111,18 @@ export function CareerDataProvider({ children }: { children: ReactNode }) {
     interviewsCompleted: 0,
     negotiationsCompleted: 0,
   });
-  const [quizResults, setQuizResults] = useState<QuizResult[]>([]);
+  const [quizResults, setQuizResults] = usePersistedState<QuizResult[]>(
+    profile?.email ? `pathforge-quiz-${profile.email}` : 'pathforge-quiz',
+    [],
+  );
+  const [scoreHistory, setScoreHistory] = usePersistedState<ScoreSnapshot[]>(
+    profile?.email ? `pathforge-scores-${profile.email}` : 'pathforge-scores',
+    [],
+  );
   const [purchasedServices, setPurchasedServices] = useState<string[]>([]);
   const [dashboardMetrics, setDashboardMetrics] = useState(apiMetricsToScores({}));
   const [jobMatchInsights, setJobMatchInsights] = useState<Record<string, unknown>[]>([]);
   const [loading, setLoading] = useState(false);
-
-  const { addNotification } = useNotifications();
-  const { authed } = useAuth();
-  const { referenceSkills, refresh: refreshReferenceSkills, refresh: refreshGamification } = useGamification();
 
   const refresh = useCallback(async () => {
     if (!authed) return;
@@ -127,7 +138,8 @@ export function CareerDataProvider({ children }: { children: ReactNode }) {
         api.getJobMatchInsights().catch(() => []),
       ]);
       setGoals(goalsData.map(apiGoalToLegacy));
-      setSkills(skillsData.map(apiSkillToLegacy));
+      const mappedSkills = skillsData.map(apiSkillToLegacy);
+      setSkills(mappedSkills);
       const steps: LearningStepMeta[] = [];
       for (const plan of plansData) {
         const goalId = plan.goalId ? String(plan.goalId) : undefined;
@@ -136,15 +148,40 @@ export function CareerDataProvider({ children }: { children: ReactNode }) {
         }
       }
       setLearningSteps(steps);
-      setOutcomes(apiProgressToOutcomes(progress));
-      setDashboardMetrics(apiMetricsToScores(metrics));
+      const progressOutcomes = apiProgressToOutcomes(progress);
+      setOutcomes(progressOutcomes);
+      const metricsScores = apiMetricsToScores(metrics);
+      setDashboardMetrics(metricsScores);
       setJobMatchInsights(insights);
+      const avgSkill = mappedSkills.length
+        ? Math.round(mappedSkills.reduce((s, k) => s + k.pct, 0) / mappedSkills.length)
+        : 0;
+      const today = new Date().toISOString().split('T')[0];
+      const snapshotScore = metricsScores.careerScore;
+      setScoreHistory((prev) => {
+        const last = prev[prev.length - 1];
+        if (last?.date === today && last.score === snapshotScore) return prev;
+        return [...prev.slice(-89), {
+          date: today,
+          score: snapshotScore,
+          skills: avgSkill,
+          applications: progressOutcomes.totalApplications,
+        }];
+      });
     } catch {
       /* keep current state */
     } finally {
       setLoading(false);
     }
-  }, [authed]);
+  }, [authed, setScoreHistory]);
+
+  useEffect(() => {
+    queueMicrotask(() => {
+      if (profile?.purchasedServices) {
+        setPurchasedServices(profile.purchasedServices);
+      }
+    });
+  }, [profile?.purchasedServices]);
 
   useEffect(() => {
     queueMicrotask(() => {
@@ -175,8 +212,12 @@ export function CareerDataProvider({ children }: { children: ReactNode }) {
       .catch(() => toast.error('Failed to update learning step'));
   }, [learningSteps, refresh]);
 
-  const addGoal = useCallback((title: string, deadline: string) => {
-    void api.createGoal({ title, targetDate: normalizeTargetDate(deadline) })
+  const addGoal = useCallback((title: string, deadline: string, skillCatalogIds?: string[]) => {
+    void api.createGoal({
+      title,
+      targetDate: normalizeTargetDate(deadline),
+      ...(skillCatalogIds?.length ? { skillCatalogIds } : {}),
+    })
       .then(() => {
         toast.success('Goal created!');
         addNotification('goal_created', `New Goal: ${title}`, `Goal "${title}" created.`, '/app/goals');
@@ -185,12 +226,13 @@ export function CareerDataProvider({ children }: { children: ReactNode }) {
       .catch(() => toast.error('Failed to create goal'));
   }, [addNotification, refresh]);
 
-  const updateGoal = useCallback((id: number, updates: Partial<Pick<Goal, 'title' | 'deadline'>>) => {
+  const updateGoal = useCallback((id: number, updates: Partial<Pick<Goal, 'title' | 'deadline'>> & { skillCatalogIds?: string[] }) => {
     const apiId = toApiId(id);
     if (!apiId) return;
     void api.updateGoal(apiId, {
       title: updates.title,
       targetDate: updates.deadline ? normalizeTargetDate(updates.deadline) : undefined,
+      ...(updates.skillCatalogIds ? { skillCatalogIds: updates.skillCatalogIds } : {}),
     })
       .then(() => {
         toast.success('Goal updated!');
@@ -266,6 +308,37 @@ export function CareerDataProvider({ children }: { children: ReactNode }) {
       .catch(() => toast.error('Failed to remove learning step'));
   }, [learningSteps, refresh]);
 
+  const addMilestone = useCallback((goalId: number, title: string) => {
+    const goal = goals.find((g) => g.id === goalId);
+    if (!goal?.apiId) return;
+    void api.addMilestone(goal.apiId, title)
+      .then(() => {
+        toast.success('Milestone added!');
+        return refresh();
+      })
+      .catch(() => toast.error('Failed to add milestone'));
+  }, [goals, refresh]);
+
+  const addLearningItem = useCallback((goalLegacyId: number | null, title: string, tag: string) => {
+    void api.getLearningPlans().then((plans) => {
+      const plan = goalLegacyId
+        ? plans.find((p) => {
+            const gid = p.goalId ? String(p.goalId) : '';
+            return gid && toApiId(goalLegacyId) === gid;
+          })
+        : plans[0];
+      if (!plan) {
+        toast.error('No learning plan found for this goal');
+        return;
+      }
+      return api.addLearningItem(String(plan.id), { title, tag })
+        .then(() => {
+          toast.success('Learning step added!');
+          return refresh();
+        });
+    }).catch(() => toast.error('Failed to add learning step'));
+  }, [refresh]);
+
   const toggleMilestone = useCallback((goalId: number, milestoneId: string, completed?: boolean) => {
     const goal = goals.find((g) => g.id === goalId);
     if (!goal?.apiId) return;
@@ -330,9 +403,17 @@ export function CareerDataProvider({ children }: { children: ReactNode }) {
   const submitQuiz = useCallback((skillName: string, correct: number, total: number) => {
     const pct = Math.round((correct / total) * 100);
     setQuizResults((prev) => [...prev, { skillName, correct, total, pct, date: new Date().toISOString() }]);
-    updateSkill(skillName, { pct: Math.max(10, pct) });
+    const skill = skills.find((s) => s.name === skillName);
+    const boosted = Math.min(100, Math.max(skill?.pct ?? 10, pct));
+    updateSkill(skillName, { pct: boosted, level: boosted >= 75 ? 'Advanced' : boosted >= 45 ? 'Intermediate' : 'Beginner' });
     toast.success(`${skillName} quiz complete — ${correct}/${total} correct (${pct}%)`);
-  }, [updateSkill]);
+    if (pct === 100) {
+      addNotification('quiz_completed', 'Perfect Score!', `You scored 100% on the ${skillName} quiz.`, '/app/skills');
+    } else if (pct >= 90) {
+      addNotification('quiz_completed', 'Quiz Ace', `Strong ${pct}% on ${skillName}.`, '/app/skills');
+    }
+    void refreshGamification();
+  }, [updateSkill, setQuizResults, skills, addNotification, refreshGamification]);
 
   const recalculateJobMatch = useCallback((_company: string, currentSkillPcts: { name: string; pct: number }[]) => {
     if (jobMatchInsights.length) {
@@ -396,8 +477,13 @@ export function CareerDataProvider({ children }: { children: ReactNode }) {
 
   const purchaseService = useCallback((name: string) => {
     if (purchasedServices.includes(name)) return;
-    setPurchasedServices((prev) => [...prev, name]);
-    toast.success(`${name} purchased!`);
+    void api.purchaseService(name)
+      .then((me) => {
+        const cp = (me.careerProfile as Record<string, unknown>) ?? {};
+        setPurchasedServices((cp.purchasedServices as string[]) ?? [...purchasedServices, name]);
+        toast.success(`${name} purchased!`);
+      })
+      .catch(() => toast.error('Failed to purchase service'));
   }, [purchasedServices]);
 
   const recomputeCareerMetrics = useCallback(() => {
@@ -412,6 +498,7 @@ export function CareerDataProvider({ children }: { children: ReactNode }) {
         learningSteps,
         outcomes,
         quizResults,
+        scoreHistory,
         purchasedServices,
         loading,
         dashboardMetrics,
@@ -427,6 +514,8 @@ export function CareerDataProvider({ children }: { children: ReactNode }) {
         updateSkill,
         deleteSkill,
         deleteLearningStep,
+        addMilestone,
+        addLearningItem,
         toggleMilestone,
         trackApplication,
         trackInterview,

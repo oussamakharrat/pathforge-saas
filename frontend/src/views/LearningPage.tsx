@@ -1,11 +1,14 @@
 'use client';
 
+import { useState } from "react";
 import { useNavigate, useSearchParams } from "@/lib/router";
 import { toast } from "sonner";
-import { RefreshCw, Check, Sparkles, Cpu, Trash2, BookOpen } from "lucide-react";
+import { RefreshCw, Check, Sparkles, Cpu, Trash2, BookOpen, Plus } from "lucide-react";
 import { cn } from "../lib/utils";
 import { FLAME, CARBON, DUST } from "../lib/constants";
 import { Card } from "../components/Card";
+import { Modal } from "../components/Modal";
+import { Field } from "../components/Field";
 import { Btn } from "../components/Btn";
 import { Bar } from "../components/Bar";
 import { Chip } from "../components/Chip";
@@ -17,7 +20,10 @@ export default function LearningPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const filterGoalId = searchParams.get("goalId") ? Number(searchParams.get("goalId")) : null;
-  const { learningSteps, toggleStep, deleteLearningStep } = useCareerData();
+  const { learningSteps, toggleStep, deleteLearningStep, addLearningItem } = useCareerData();
+  const [showAddStep, setShowAddStep] = useState(false);
+  const [newStepTitle, setNewStepTitle] = useState("");
+  const [newStepTag, setNewStepTag] = useState("Skills");
 
   const filteredSteps = filterGoalId
     ? learningSteps.filter((s) => s.goalLegacyId === filterGoalId)
@@ -34,7 +40,11 @@ export default function LearningPage() {
       <PageHeader
         title="Learning Plan"
         subtitle="AI-generated roadmap to Senior Engineer."
-        action={<Btn variant="outline" size="sm" onClick={() => toast.info("AI is generating an updated plan based on your goals...")}><RefreshCw className="w-3.5 h-3.5" /> Regenerate</Btn>}
+        action={
+          <div className="flex gap-2">
+            <Btn variant="outline" size="sm" onClick={() => setShowAddStep(true)}><Plus className="w-3.5 h-3.5" /> Add Step</Btn>
+          </div>
+        }
       />
 
       {filterGoalId && (
@@ -102,6 +112,22 @@ export default function LearningPage() {
         );
       })
       )}
+
+      <Modal open={showAddStep} onClose={() => setShowAddStep(false)} title="Add Learning Step">
+        <div className="space-y-4">
+          <Field label="Step Title" value={newStepTitle} onChange={setNewStepTitle} />
+          <Field label="Tag / Skill" value={newStepTag} onChange={setNewStepTag} />
+          <div className="flex gap-3">
+            <Btn variant="outline" full onClick={() => setShowAddStep(false)}>Cancel</Btn>
+            <Btn full onClick={() => {
+              if (!newStepTitle.trim()) { toast.error("Enter a step title"); return; }
+              addLearningItem(filterGoalId, newStepTitle.trim(), newStepTag.trim());
+              setNewStepTitle("");
+              setShowAddStep(false);
+            }}>Add Step</Btn>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

@@ -2,6 +2,7 @@ import { Injectable, BadRequestException } from '@nestjs/common';
 import { ReactionType } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsHelper } from '../common/notifications.helper';
+import { GamificationUnlockService } from '../common/gamification-unlock.service';
 import { assertFound } from '../common/assertions';
 import {
   CreatePostDto,
@@ -14,6 +15,7 @@ export class CommunityService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notifications: NotificationsHelper,
+    private readonly gamification: GamificationUnlockService,
   ) {}
 
   async listPosts() {
@@ -47,7 +49,7 @@ export class CommunityService {
   }
 
   async createPost(userId: string, dto: CreatePostDto) {
-    return this.prisma.communityPost.create({
+    const post = await this.prisma.communityPost.create({
       data: {
         userId,
         title: dto.title,
@@ -55,6 +57,8 @@ export class CommunityService {
         tags: dto.tags ?? [],
       },
     });
+    await this.gamification.onCommunityEngagement(userId);
+    return post;
   }
 
   async addComment(userId: string, postId: string, dto: CreateCommentDto) {
@@ -86,6 +90,7 @@ export class CommunityService {
       );
     }
 
+    await this.gamification.onCommunityEngagement(userId);
     return comment;
   }
 

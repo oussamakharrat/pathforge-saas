@@ -16,6 +16,9 @@ import { ImpactBadge } from "../components/ImpactBadge";
 import { Modal } from "../components/Modal";
 import { EmptyState } from "../components/EmptyState";
 import { useCareerData } from "../contexts/CareerDataContext";
+import { useJobs } from "../contexts/JobsContext";
+import { useGamification } from "../contexts/GamificationContext";
+import { SkillAutocomplete, type SkillCatalogOption } from "../components/SkillAutocomplete";
 
 // Helper to parse deadline like "Dec 2025" or "Jun 2026" and check if overdue
 function isGoalOverdue(deadline: string, progress: number): boolean {
@@ -33,15 +36,29 @@ export default function GoalsPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const highlightedSkill = searchParams.get("skill") || "";
-  const { goals, learningSteps, addGoal, updateGoal, deleteGoal, toggleMilestone } = useCareerData();
+  const { goals, learningSteps, skills, addGoal, updateGoal, deleteGoal, toggleMilestone, addMilestone } = useCareerData();
+  const { kanban } = useJobs();
+  const { referenceSkills } = useGamification();
 
   const [sel, setSel] = useState<number | null>(null);
   const [showAdd, setShowAdd] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
+  const [newMilestoneTitle, setNewMilestoneTitle] = useState("");
+  const [showAddMilestone, setShowAddMilestone] = useState(false);
   const [editGoal, setEditGoal] = useState({ id: 0, title: "", deadline: "" });
-  const [newGoal, setNewGoal] = useState({ title: "", deadline: "" });
+  const [newGoal, setNewGoal] = useState({ title: "", deadline: "", skillIds: [] as string[] });
+  const [editGoalSkills, setEditGoalSkills] = useState<string[]>([]);
   const [confirmDelete, setConfirmDelete] = useState<number | null>(null);
   const goal = goals.find(g => g.id === sel);
+
+  const catalogOptions: SkillCatalogOption[] = referenceSkills.map((skill) => ({
+    id: String(skill.id),
+    name: String(skill.name),
+    category: String(skill.category ?? 'Tools'),
+    marketDemand: skill.marketDemand ? String(skill.marketDemand) : undefined,
+  }));
+
+  const allApps = useMemo(() => Object.values(kanban).flat(), [kanban]);
 
   const overdueIds = useMemo(() => {
     return new Set(goals.filter(g => isGoalOverdue(g.deadline, g.progress)).map(g => g.id));
@@ -62,7 +79,7 @@ export default function GoalsPage() {
                 <p className="text-[13px] text-muted-foreground">Due {goal.deadline} · {goal.done}/{goal.steps} steps</p>
               </div>
               <div className="flex items-center gap-2">
-                <button onClick={() => { setEditGoal({ id: goal.id, title: goal.title, deadline: goal.deadline }); setShowEdit(true); }}
+                <button onClick={() => { setEditGoal({ id: goal.id, title: goal.title, deadline: goal.deadline }); setEditGoalSkills(goal.linkedSkills?.map((s) => s.id) ?? []); setShowEdit(true); }}
                   className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-all">
                   <Pencil className="w-4 h-4" />
                 </button>
@@ -74,6 +91,13 @@ export default function GoalsPage() {
               </div>
             </div>
             <Bar pct={goal.progress} h={8} />
+            {goal.linkedSkills && goal.linkedSkills.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mt-3">
+                {goal.linkedSkills.map((s) => (
+                  <Chip key={s.id} variant="ghost">{s.name}</Chip>
+                ))}
+              </div>
+            )}
           </Card>
           <Card className="p-4" hover={false}>
             <h2 className="text-[14px] font-black mb-3" style={{ color: CARBON }}>Milestones</h2>
@@ -99,6 +123,7 @@ export default function GoalsPage() {
                 ))}
               </div>
             )}
+            <button onClick={() => setShowAddMilestone(true)} className="mt-3 text-[12px] font-bold hover:underline" style={{ color: FLAME }}>+ Add milestone</button>
           </Card>
           <div>
             {(() => {
@@ -139,17 +164,41 @@ export default function GoalsPage() {
           </div>
         </div>
         <div className="space-y-3">
-          <Card className="p-4" hover={false} style={{ borderColor: "rgba(241,80,37,0.2)" }}>
-            <div className="flex items-center gap-2 mb-3"><Sparkles className="w-4 h-4" style={{ color: FLAME }} /><span className="text-[13px] font-black">AI Suggestions</span></div>
-            {["Focus on Docker — blocks 3 senior matches.", "Schedule a system design mock first.", "TypeScript is strong — lead with it."].map((t, i) => (
-              <div key={i} className="flex items-start gap-2 mb-2"><ArrowRight className="w-3 h-3 mt-0.5 flex-shrink-0" style={{ color: FLAME }} /><p className="text-[12px]" style={{ color: CARBON }}>{t}</p></div>
-            ))}
-            <Btn size="sm" className="w-full mt-3" onClick={() => navigate("/app/coach")}><Brain className="w-3.5 h-3.5" /> Ask AI Coach</Btn>
+          <Card className="p-4" hover={false}>
+            <h3 className="text-[12px] font-black mb-2.5" style={{ color: CARBON }}>Next Steps</h3>
+            <div className="space-y-2">
+              {goal.progress < 100 && (
+                <p className="text-[12px]" style={{ color: CARBON }}>
+                  {goal.done < goal.steps
+                    ? `Complete ${goal.steps - goal.done} more milestone${goal.steps - goal.done > 1 ? 's' : ''} to reach 100%.`
+                    : 'Keep working toward your deadline.'}
+                </p>
+              )}
+              {learningSteps.filter((s) => s.goalLegacyId === goal.id && !s.done).length > 0 && (
+                <p className="text-[12px]" style={{ color: CARBON }}>
+                  {learningSteps.filter((s) => s.goalLegacyId === goal.id && !s.done).length} learning step(s) remaining — open your roadmap to continue.
+                </p>
+              )}
+              {skills.filter((s) => s.pct < 50).length > 0 && (
+                <p className="text-[12px]" style={{ color: CARBON }}>
+                  Strengthen {skills.filter((s) => s.pct < 50).slice(0, 2).map((s) => s.name).join(' and ')} to improve job matches.
+                </p>
+              )}
+            </div>
           </Card>
           <Card className="p-4" hover={false}>
             <h3 className="text-[12px] font-black mb-2.5" style={{ color: CARBON }}>Connected Modules</h3>
             <div className="space-y-2">
-              {[{ label: "Learning Plan", desc: "8 steps linked", page: "/app/learning", icon: BookOpen }, { label: "Skills", desc: "6 skills affected", page: "/app/skills", icon: Zap }, { label: "Job Tracker", desc: "3 roles require this", page: "/app/tracker", icon: Layers }].map(m => {
+              {(() => {
+                const stepCount = learningSteps.filter((s) => s.goalLegacyId === goal.id).length;
+                const jobCount = allApps.filter((a) => a.goalId === goal.apiId).length;
+                const skillCount = goal.linkedSkills?.length ?? 0;
+                return [
+                  { label: "Learning Plan", desc: `${stepCount} step${stepCount !== 1 ? 's' : ''} linked`, page: `/app/learning?goalId=${goal.id}`, icon: BookOpen },
+                  { label: "Skills", desc: `${skillCount} skill${skillCount !== 1 ? 's' : ''} linked`, page: "/app/skills", icon: Zap },
+                  { label: "Job Tracker", desc: `${jobCount} role${jobCount !== 1 ? 's' : ''} in pipeline`, page: "/app/tracker", icon: Layers },
+                ];
+              })().map(m => {
                 const Icon = m.icon;
                 return (
                   <button key={m.label} onClick={() => navigate(m.page)} className="w-full flex items-center gap-3 p-3 rounded-xl border border-border hover:border-orange-200 transition-all text-left">
@@ -219,9 +268,33 @@ export default function GoalsPage() {
         <div className="space-y-4">
           <Field label="Goal Title" placeholder="e.g. Become a Senior Engineer" value={newGoal.title} onChange={v => setNewGoal(p => ({ ...p, title: v }))} Left={Target} />
           <Field label="Target Deadline" type="month" value={newGoal.deadline} onChange={v => setNewGoal(p => ({ ...p, deadline: v }))} Left={Clock} />
+          <div>
+            <label className="text-[13px] font-black block mb-1.5" style={{ color: CARBON }}>Linked Skills (optional)</label>
+            <div className="flex flex-wrap gap-1.5 mb-2">
+              {newGoal.skillIds.map((id) => {
+                const skill = catalogOptions.find((s) => s.id === id);
+                return skill ? (
+                  <Chip key={id} variant="ghost">
+                    {skill.name}
+                    <button className="ml-1" onClick={() => setNewGoal((p) => ({ ...p, skillIds: p.skillIds.filter((x) => x !== id) }))}>×</button>
+                  </Chip>
+                ) : null;
+              })}
+            </div>
+            <SkillAutocomplete
+              value=""
+              onValueChange={(_name, option) => {
+                if (option && !newGoal.skillIds.includes(option.id)) {
+                  setNewGoal((p) => ({ ...p, skillIds: [...p.skillIds, option.id] }));
+                }
+              }}
+              options={catalogOptions.filter((o) => !newGoal.skillIds.includes(o.id))}
+              placeholder="Add skills to track for this goal…"
+            />
+          </div>
           <div className="flex gap-3 pt-1">
             <Btn variant="outline" full onClick={() => setShowAdd(false)}>Cancel</Btn>
-            <Btn full onClick={() => { if (!newGoal.title.trim()) { toast.error("Please enter a goal title"); return; } addGoal(newGoal.title, newGoal.deadline); setShowAdd(false); setNewGoal({ title: "", deadline: "" }); }}>Create Goal</Btn>
+            <Btn full onClick={() => { if (!newGoal.title.trim()) { toast.error("Please enter a goal title"); return; } addGoal(newGoal.title, newGoal.deadline, newGoal.skillIds); setShowAdd(false); setNewGoal({ title: "", deadline: "", skillIds: [] }); }}>Create Goal</Btn>
           </div>
         </div>
       </Modal>
@@ -230,9 +303,48 @@ export default function GoalsPage() {
         <div className="space-y-4">
           <Field label="Goal Title" placeholder="e.g. Become a Senior Engineer" value={editGoal.title} onChange={v => setEditGoal(p => ({ ...p, title: v }))} Left={Target} />
           <Field label="Target Deadline" type="month" value={editGoal.deadline} onChange={v => setEditGoal(p => ({ ...p, deadline: v }))} Left={Clock} />
+          <div>
+            <label className="text-[13px] font-black block mb-1.5" style={{ color: CARBON }}>Linked Skills</label>
+            <div className="flex flex-wrap gap-1.5 mb-2">
+              {editGoalSkills.map((id) => {
+                const skill = catalogOptions.find((s) => s.id === id);
+                return skill ? (
+                  <Chip key={id} variant="ghost">
+                    {skill.name}
+                    <button className="ml-1" onClick={() => setEditGoalSkills((prev) => prev.filter((x) => x !== id))}>×</button>
+                  </Chip>
+                ) : null;
+              })}
+            </div>
+            <SkillAutocomplete
+              value=""
+              onValueChange={(_name, option) => {
+                if (option && !editGoalSkills.includes(option.id)) {
+                  setEditGoalSkills((prev) => [...prev, option.id]);
+                }
+              }}
+              options={catalogOptions.filter((o) => !editGoalSkills.includes(o.id))}
+              placeholder="Add skills…"
+            />
+          </div>
           <div className="flex gap-3 pt-1">
             <Btn variant="outline" full onClick={() => setShowEdit(false)}>Cancel</Btn>
-            <Btn full onClick={() => { if (!editGoal.title.trim()) { toast.error("Please enter a goal title"); return; } updateGoal(editGoal.id, { title: editGoal.title, deadline: editGoal.deadline }); setShowEdit(false); }}>Save Changes</Btn>
+            <Btn full onClick={() => { if (!editGoal.title.trim()) { toast.error("Please enter a goal title"); return; } updateGoal(editGoal.id, { title: editGoal.title, deadline: editGoal.deadline, skillCatalogIds: editGoalSkills }); setShowEdit(false); }}>Save Changes</Btn>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal open={showAddMilestone} onClose={() => setShowAddMilestone(false)} title="Add Milestone">
+        <div className="space-y-4">
+          <Field label="Milestone Title" placeholder="e.g. Complete certification" value={newMilestoneTitle} onChange={setNewMilestoneTitle} Left={Target} />
+          <div className="flex gap-3 pt-1">
+            <Btn variant="outline" full onClick={() => setShowAddMilestone(false)}>Cancel</Btn>
+            <Btn full onClick={() => {
+              if (!newMilestoneTitle.trim() || sel === null) { toast.error("Enter a milestone title"); return; }
+              addMilestone(sel, newMilestoneTitle.trim());
+              setNewMilestoneTitle("");
+              setShowAddMilestone(false);
+            }}>Add</Btn>
           </div>
         </div>
       </Modal>

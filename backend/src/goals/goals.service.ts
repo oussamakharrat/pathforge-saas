@@ -37,11 +37,11 @@ const DEFAULT_MILESTONES: Omit<Milestone, 'id'>[] = [
 ];
 
 const DEFAULT_LEARNING_ITEMS = [
-  { title: 'Research role requirements', tag: 'Planning' },
-  { title: 'Identify skill gaps', tag: 'Skills' },
-  { title: 'Complete foundational learning', tag: 'Learning' },
-  { title: 'Build portfolio evidence', tag: 'Portfolio' },
-  { title: 'Practice interviews', tag: 'Interview' },
+  { title: 'Research role requirements', tag: 'Planning', skillBoostAmount: 5 },
+  { title: 'Identify skill gaps', tag: 'Skills', skillBoostAmount: 8 },
+  { title: 'Complete foundational learning', tag: 'Learning', skillBoostAmount: 10 },
+  { title: 'Build portfolio evidence', tag: 'Portfolio', skillBoostAmount: 7 },
+  { title: 'Practice interviews', tag: 'Interview', skillBoostAmount: 6 },
 ];
 
 @Injectable()
@@ -111,6 +111,7 @@ export class GoalsService {
             title: item.title,
             tag: item.tag,
             order: idx,
+            skillBoostAmount: item.skillBoostAmount,
           })),
         },
       },

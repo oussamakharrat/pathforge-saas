@@ -23,6 +23,8 @@ interface GamificationContextType {
   loading: boolean;
   refresh: () => Promise<void>;
   streakDays: number;
+  markAchievementSeen: (id: string) => Promise<void>;
+  markBadgeSeen: (id: string) => Promise<void>;
 }
 
 const GamificationContext = createContext<GamificationContextType | null>(null);
@@ -76,13 +78,23 @@ export function GamificationProvider({ children }: { children: ReactNode }) {
     }
   }, [authed]);
 
+  const markAchievementSeen = useCallback(async (id: string) => {
+    await api.markAchievementSeen(id);
+    await refresh();
+  }, [refresh]);
+
+  const markBadgeSeen = useCallback(async (id: string) => {
+    await api.markBadgeSeen(id);
+    await refresh();
+  }, [refresh]);
+
   useEffect(() => {
     queueMicrotask(() => { void refresh(); });
   }, [refresh]);
 
   const value = useMemo(
-    () => ({ achievements, badges, referenceSkills, loading, refresh, streakDays }),
-    [achievements, badges, referenceSkills, loading, refresh, streakDays],
+    () => ({ achievements, badges, referenceSkills, loading, refresh, streakDays, markAchievementSeen, markBadgeSeen }),
+    [achievements, badges, referenceSkills, loading, refresh, streakDays, markAchievementSeen, markBadgeSeen],
   );
 
   return (

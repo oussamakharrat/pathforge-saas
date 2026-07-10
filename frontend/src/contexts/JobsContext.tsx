@@ -34,7 +34,7 @@ interface JobsContextType {
   refreshApplications: () => Promise<void>;
   updateApplicationNotes: (cardId: string, notes: string) => Promise<void>;
   moveCard: (cardId: string, from: KanbanCol, to: KanbanCol) => Promise<void>;
-  addCard: (col: KanbanCol, card: Omit<KanbanCard, 'id'>) => Promise<void>;
+  addCard: (col: KanbanCol, card: Omit<KanbanCard, 'id'>, goalId?: string) => Promise<void>;
   removeCard: (cardId: string, col: KanbanCol) => Promise<void>;
   jobMatchInsights: Record<string, unknown>[];
 }
@@ -84,7 +84,7 @@ export function JobsProvider({ children }: { children: ReactNode }) {
     }
   }, [kanban, refreshApplications]);
 
-  const addCard = useCallback(async (col: KanbanCol, card: Omit<KanbanCard, 'id'>) => {
+  const addCard = useCallback(async (col: KanbanCol, card: Omit<KanbanCard, 'id'>, goalId?: string) => {
     try {
       const job = await api.createJobPosting({
         company: card.company,
@@ -97,6 +97,7 @@ export function JobsProvider({ children }: { children: ReactNode }) {
         jobId: job.id,
         notes: card.notes,
         status: COL_TO_STATUS[col],
+        goalId,
       });
       const jobData = (app.job as Record<string, unknown>) ?? job;
       const newCard: KanbanCard = {
@@ -122,7 +123,8 @@ export function JobsProvider({ children }: { children: ReactNode }) {
       [col]: prev[col].filter((c) => c.id !== cardId),
     }));
     try {
-      await api.updateApplicationStatus(cardId, 'rejected');
+      await api.deleteApplication(cardId);
+      toast.success('Application removed');
     } catch {
       void refreshApplications();
     }

@@ -1,5 +1,5 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
-import { NegotiationStatus } from '@prisma/client';
+import { NegotiationStatus, ApplicationStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsHelper } from '../common/notifications.helper';
 import { DashboardProjector } from '../common/dashboard.projector';
@@ -9,6 +9,7 @@ import {
   CreateNegotiationDto,
   UpdateNegotiationDto,
 } from './dto/negotiations.dto';
+import { AnalyzeOfferDto } from './dto/analyze-offer.dto';
 
 @Injectable()
 export class NegotiationsService {
@@ -120,5 +121,116 @@ export class NegotiationsService {
     }
 
     return updated;
+  }
+
+  async analyzeOffer(userId: string, dto: AnalyzeOfferDto) {
+    if (dto.targetSalary.amount < dto.offeredSalary.amount) {
+      throw new BadRequestException('Target salary must be >= offered salary');
+    }
+
+    let job = await this.prisma.jobPosting.findFirst({
+      where: {
+        userId,
+        company: dto.company,
+        title: dto.role,
+        source: 'negotiation_draft',
+      },
+    });
+
+    if (!job) {
+      job = await this.prisma.jobPosting.create({
+        data: {
+          userId,
+          company: dto.company,
+          title: dto.role,
+          location: dto.location ?? '',
+          source: 'negotiation_draft',
+          salaryRange: dto.offeredSalary,
+        },
+      });
+    } else {
+      job = await this.prisma.jobPosting.update({
+        where: { id: job.id },
+        data: {
+          location: dto.location ?? job.location,
+          salaryRange: dto.offeredSalary,
+        },
+      });
+    }
+
+    let application = await this.prisma.application.findFirst({
+      where: { userId, jobId: job.id },
+      include: { offers: { include: { negotiation: true } } },
+    });
+
+    if (!application) {
+      application = await this.prisma.application.create({
+        data: {
+          userId,
+          jobId: job.id,
+          status: ApplicationStatus.offer,
+          notes: `Salary negotiation for ${dto.role} at ${dto.company}`,
+        },
+        include: { offers: { include: { negotiation: true } } },
+      });
+    }
+
+    let offer = application.offers[0];
+    if (!offer) {
+      offer = await this.prisma.offer.create({
+        data: {
+          applicationId: application.id,
+          company: dto.company,
+          role: dto.role,
+          baseSalary: dto.offeredSalary,
+        },
+        include: { negotiation: true },
+      });
+      await this.gamification.onOfferReceived(userId);
+    } else {
+      offer = await this.prisma.offer.update({
+        where: { id: offer.id },
+        data: { baseSalary: dto.offeredSalary },
+        include: { negotiation: true },
+      });
+    }
+
+    if (offer.negotiation) {
+      return this.prisma.negotiation.update({
+        where: { id: offer.negotiation.id },
+        data: {
+          offeredSalary: dto.offeredSalary,
+          targetSalary: dto.targetSalary,
+          strategy: dto.strategy ?? 'Market-aligned counter-offer',
+        },
+        include: { offer: { include: { application: { include: { job: true } } } } },
+      });
+    }
+
+    const negotiation = await this.prisma.negotiation.create({
+      data: {
+        userId,
+        offerId: offer.id,
+        offeredSalary: dto.offeredSalary,
+        targetSalary: dto.targetSalary,
+        strategy: dto.strategy ?? 'Market-aligned counter-offer',
+        talkingPoints: [],
+        status: NegotiationStatus.pending,
+      },
+      include: { offer: { include: { application: { include: { job: true } } } } },
+    });
+
+    await this.notifications.create(
+      userId,
+      'negotiation_completed',
+      'Negotiation started',
+      'Your salary negotiation is ready',
+      negotiation.id,
+      'negotiation',
+      '/app/negotiate',
+    );
+
+    await this.dashboard.refresh(userId);
+    return negotiation;
   }
 }

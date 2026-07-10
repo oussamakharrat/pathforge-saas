@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useSearchParams } from "@/lib/router";
 import { toast } from "sonner";
-import { ChevronLeft, Sparkles, Check, Copy, Shield, DollarSign, Briefcase, Building, Globe } from "lucide-react";
+import { ChevronLeft, Sparkles, Check, Copy, Shield, DollarSign, Briefcase, Building, Globe, History, Clock } from "lucide-react";
 import { FLAME, CARBON, ALABASTER } from "../lib/constants";
 import { cn } from "../lib/utils";
 import { Card } from "../components/Card";
@@ -62,6 +62,15 @@ export default function NegotiatePage() {
   const [analyzing, setAnalyzing] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [history, setHistory] = useState<Record<string, unknown>[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(true);
+
+  useEffect(() => {
+    void api.getNegotiations()
+      .then(setHistory)
+      .catch(() => setHistory([]))
+      .finally(() => setLoadingHistory(false));
+  }, [screen]);
 
   const offered = parseInt(offerSalary) || 145000;
 
@@ -101,33 +110,20 @@ export default function NegotiatePage() {
     if (!validate()) return;
     setAnalyzing(true);
     try {
-      const job = await api.createJobPosting({
-        company,
-        title: role,
-        location,
-        salaryRange: { amount: offered, currency: "USD" },
-      });
-      const app = await api.createApplication({
-        jobId: String(job.id),
-        notes: `Salary negotiation analysis for ${role} at ${company}`,
-        status: "offer",
-      });
-      const offer = await api.addOffer(String(app.id), {
+      const neg = await api.analyzeNegotiation({
         company,
         role,
-        baseSalary: { amount: offered, currency: "USD" },
-      });
-      const neg = await api.createNegotiation({
-        offerId: offer.id,
+        location,
         offeredSalary: { amount: offered, currency: "USD" },
         targetSalary: { amount: target, currency: "USD" },
         strategy: gap > 0 ? "Market-aligned counter-offer" : "Total compensation focus",
-        talkingPoints: [],
       });
       setNegotiationId(String(neg.id));
       setScreen("analysis");
       completeNegotiation();
       void refreshGamification();
+      const updated = await api.getNegotiations();
+      setHistory(updated);
       toast.success("Analysis complete! Negotiation saved.");
     } catch {
       toast.error("Failed to save negotiation analysis");
@@ -290,6 +286,60 @@ export default function NegotiatePage() {
           <p className="text-[11px] text-center text-muted-foreground">Powered by 50,000+ verified compensation records</p>
         </div>
       </Card>
+
+      {!loadingHistory && history.length > 0 && (
+        <Card className="p-5 mt-5" hover={false}>
+          <div className="flex items-center gap-2 mb-4">
+            <History className="w-4 h-4" style={{ color: FLAME }} />
+            <span className="text-[14px] font-black" style={{ color: CARBON }}>Negotiation History</span>
+          </div>
+          <div className="space-y-2">
+            {history.slice(0, 8).map((neg) => {
+              const offer = (neg.offer as Record<string, unknown>) ?? {};
+              const app = (offer.application as Record<string, unknown>) ?? {};
+              const job = (app.job as Record<string, unknown>) ?? {};
+              const offeredSalary = offer.offeredSalary as Record<string, unknown> | undefined;
+              const targetSalary = offer.targetSalary as Record<string, unknown> | undefined;
+              const companyName = String(job.company ?? neg.company ?? "Company");
+              const roleName = String(job.title ?? neg.role ?? "Role");
+              const offeredAmt = Number(offeredSalary?.amount ?? 0);
+              const targetAmt = Number(targetSalary?.amount ?? 0);
+              const date = String(neg.updatedAt ?? neg.createdAt ?? "").split("T")[0];
+              return (
+                <button
+                  key={String(neg.id)}
+                  onClick={() => {
+                    setCompany(companyName);
+                    setRole(roleName);
+                    if (offeredAmt) setOfferSalary(String(offeredAmt));
+                    setNegotiationId(String(neg.id));
+                    setScreen("analysis");
+                  }}
+                  className="w-full flex items-center gap-3 p-3 rounded-xl border border-border hover:border-orange-200 text-left transition-all"
+                >
+                  <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: ALABASTER }}>
+                    <DollarSign className="w-4 h-4" style={{ color: FLAME }} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[13px] font-bold truncate" style={{ color: CARBON }}>{roleName} at {companyName}</p>
+                    <p className="text-[11px] text-muted-foreground flex items-center gap-1">
+                      <Clock className="w-3 h-3" /> {date} · {String(neg.status ?? "draft")}
+                    </p>
+                  </div>
+                  <div className="text-right flex-shrink-0">
+                    <p className="text-[12px] font-black" style={{ color: CARBON }}>
+                      {offeredAmt ? `$${offeredAmt.toLocaleString()}` : "—"}
+                    </p>
+                    {targetAmt > offeredAmt && (
+                      <p className="text-[10px] text-emerald-600">→ ${targetAmt.toLocaleString()}</p>
+                    )}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </Card>
+      )}
     </div>
   );
 }

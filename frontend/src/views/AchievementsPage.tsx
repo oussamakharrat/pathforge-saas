@@ -19,7 +19,7 @@ const ICON_MAP: Record<string, typeof Trophy> = {
 };
 
 export default function AchievementsPage() {
-  const { achievements, streakDays, loading } = useGamification();
+  const { achievements, streakDays, loading, markAchievementSeen } = useGamification();
   const { goals, skills, outcomes } = useCareerData();
   const [filter, setFilter] = useState<string>("all");
 
@@ -41,6 +41,7 @@ export default function AchievementsPage() {
         category: a.category as "milestone" | "skill" | "social" | "streak",
         rarity: "common" as const,
         progress,
+        earnedId: a.earnedId,
       };
     });
   }, [achievements, goals.length, skills.length, streakDays, outcomes.interviewsCompleted]);
@@ -65,7 +66,8 @@ export default function AchievementsPage() {
 
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {filtered.map(a => (
-          <Card key={a.id} className="p-4" hover={false} style={{ opacity: a.unlocked ? 1 : 0.65 }}>
+          <Card key={a.id} className="p-4 cursor-pointer" hover={false} style={{ opacity: a.unlocked ? 1 : 0.65 }}
+            onClick={() => { if (a.unlocked && a.earnedId) void markAchievementSeen(a.earnedId); }}>
             <div className="flex items-start gap-3 mb-3">
               <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: a.unlocked ? "rgba(241,80,37,0.1)" : ALABASTER }}>
                 {a.unlocked ? <a.icon className="w-5 h-5" style={{ color: FLAME }} /> : <Lock className="w-4 h-4 text-muted-foreground" />}

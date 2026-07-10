@@ -1,7 +1,9 @@
 'use client';
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { TrendingUp, Target, Zap, BookOpen, Briefcase, Award, Download, Sparkles, Mic } from "lucide-react";
+import { toast } from "sonner";
+import { api } from "@/lib/api";
 import { FLAME, CARBON, ALABASTER, DUST } from "../lib/constants";
 import { Card } from "../components/Card";
 import { Bar } from "../components/Bar";
@@ -12,8 +14,15 @@ import { useCareerData } from "../contexts/CareerDataContext";
 type Period = "7d" | "30d" | "90d" | "1y";
 
 export default function AnalyticsPage() {
-  const { skills, goals, learningSteps, outcomes, careerScore, quizResults, dashboardMetrics } = useCareerData();
+  const { skills, goals, learningSteps, outcomes, careerScore, quizResults, dashboardMetrics, scoreHistory } = useCareerData();
   const [period, setPeriod] = useState<Period>("30d");
+  const [interviewReadiness, setInterviewReadiness] = useState<Record<string, unknown>[]>([]);
+
+  useEffect(() => {
+    void api.getInterviewReadiness().then(setInterviewReadiness).catch(() => setInterviewReadiness([]));
+  }, []);
+
+  const periodMonths = period === "7d" ? 1 : period === "30d" ? 3 : period === "90d" ? 6 : 12;
 
   const avgSkill = useMemo(
     () => skills.length > 0
@@ -25,15 +34,30 @@ export default function AnalyticsPage() {
   const goalAvgProgress = useMemo(() => Math.round(goals.reduce((s, g) => s + g.progress, 0) / (goals.length || 1)), [goals]);
 
   const historyData = useMemo(() => {
-    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"];
+    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
     const baseScore = dashboardMetrics.careerScore || careerScore;
-    return months.map((m, i) => ({
+
+    if (scoreHistory.length >= 2) {
+      const slice = scoreHistory.slice(-periodMonths);
+      return slice.map((entry) => {
+        const d = new Date(entry.date);
+        return {
+          month: months[d.getMonth()] ?? entry.date.slice(5, 7),
+          score: entry.score,
+          skills: entry.skills,
+          applications: entry.applications,
+        };
+      });
+    }
+
+    const slice = months.slice(-periodMonths);
+    return slice.map((m, i) => ({
       month: m,
-      score: Math.min(98, Math.max(0, baseScore - (5 - i) * 2)),
-      skills: Math.min(92, avgSkill),
+      score: Math.min(98, Math.max(0, Math.round(baseScore * (0.7 + (i / Math.max(slice.length - 1, 1)) * 0.3)))),
+      skills: avgSkill,
       applications: outcomes.totalApplications,
     }));
-  }, [dashboardMetrics, careerScore, avgSkill, outcomes.totalApplications]);
+  }, [dashboardMetrics, careerScore, avgSkill, outcomes.totalApplications, periodMonths, scoreHistory]);
 
   const quizAvg = useMemo(() => {
     if (quizResults.length === 0) return 0;
@@ -74,7 +98,21 @@ export default function AnalyticsPage() {
         title="Analytics"
         subtitle="Track your career growth over time. Scores, skills, and application metrics."
         action={
-          <button onClick={() => { const blob = new Blob(["Career Analytics Export - Placeholder"], { type: "text/plain" }); const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = "career-analytics.txt"; a.click(); URL.revokeObjectURL(url); }}
+          <button onClick={async () => {
+            try {
+              const data = await api.exportUserData();
+              const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement("a");
+              a.href = url;
+              a.download = `pathforge-export-${new Date().toISOString().split("T")[0]}.json`;
+              a.click();
+              URL.revokeObjectURL(url);
+              toast.success("Data exported");
+            } catch {
+              toast.error("Export failed");
+            }
+          }}
             className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[11px] font-bold transition-all hover:bg-secondary" style={{ color: CARBON }}>
             <Download className="w-3.5 h-3.5" /> Export
           </button>

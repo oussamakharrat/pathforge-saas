@@ -122,7 +122,10 @@ export class JobsService {
 
   async listApplications(userId: string) {
     return this.prisma.application.findMany({
-      where: { userId },
+      where: {
+        userId,
+        job: { source: { notIn: ['practice', 'negotiation_draft'] } },
+      },
       include: {
         job: true,
         interviews: true,
@@ -266,6 +269,14 @@ export class JobsService {
     return updated;
   }
 
+  async deleteApplication(userId: string, id: string) {
+    await this.getApplication(userId, id);
+    await this.prisma.application.delete({ where: { id } });
+    await this.dashboard.refresh(userId);
+    await this.dashboard.refreshCareerMetrics(userId);
+    return { deleted: true };
+  }
+
   async addInterview(
     userId: string,
     applicationId: string,
@@ -383,7 +394,7 @@ export class JobsService {
     const interviewType = typeMap[dto.type] ?? InterviewType.mock;
 
     let job = await this.prisma.jobPosting.findFirst({
-      where: { userId, company: dto.company, title: dto.role },
+      where: { userId, company: dto.company, title: dto.role, source: 'practice' },
     });
     if (!job) {
       job = await this.prisma.jobPosting.create({
@@ -392,6 +403,7 @@ export class JobsService {
           company: dto.company,
           title: dto.role,
           description: 'Mock interview practice session',
+          source: 'practice',
         },
       });
     }

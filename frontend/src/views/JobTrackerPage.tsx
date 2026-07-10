@@ -19,7 +19,7 @@ export default function JobTrackerPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const initialSearch = searchParams.get("skill") || "";
-  const { skills, trackApplication, trackInterview, trackOffer, recalculateJobMatch } = useCareerData();
+  const { skills, goals, trackApplication, trackInterview, trackOffer, recalculateJobMatch } = useCareerData();
   const { kanban: cols, moveCard, addCard, removeCard, updateApplicationNotes } = useJobs();
 
   const [dragging, setDragging] = useState<{ card: KanbanCard; from: KanbanCol } | null>(null);
@@ -28,6 +28,7 @@ export default function JobTrackerPage() {
   const [search, setSearch] = useState(initialSearch);
   const [showAddCard, setShowAddCard] = useState<KanbanCol | null>(null);
   const [newCard, setNewCard] = useState({ company: "", role: "", salary: "$", notes: "", logo: "" });
+  const [linkGoalId, setLinkGoalId] = useState<string>("");
   const [confirmDeleteCard, setConfirmDeleteCard] = useState<string | null>(null);
   const [editingNotes, setEditingNotes] = useState(false);
   const [editNotesText, setEditNotesText] = useState("");
@@ -248,6 +249,17 @@ export default function JobTrackerPage() {
               style={{ backgroundColor: ALABASTER }} />
           </div>
           <div>
+            <label className="text-[13px] font-black block mb-1.5" style={{ color: CARBON }}>Link to goal (optional)</label>
+            <select value={linkGoalId} onChange={e => setLinkGoalId(e.target.value)}
+              className="w-full h-11 px-4 rounded-xl border border-border text-[13px] focus:outline-none focus:ring-2 focus:ring-ring"
+              style={{ backgroundColor: ALABASTER }}>
+              <option value="">No goal linked</option>
+              {goals.map(g => (
+                <option key={g.id} value={g.apiId}>{g.title}</option>
+              ))}
+            </select>
+          </div>
+          <div>
             <label className="text-[13px] font-black block mb-1.5" style={{ color: CARBON }}>Add to column</label>
             <div className="flex flex-wrap gap-1.5">
               {KANBAN_COLS.map(col => (
@@ -271,8 +283,9 @@ export default function JobTrackerPage() {
                 match: recalculateJobMatch(newCard.company.trim(), skillPcts),
                 notes: newCard.notes || "",
                 logo: newCard.company.trim().charAt(0).toUpperCase(),
-              });
+              }, linkGoalId || undefined);
               setShowAddCard(null);
+              setLinkGoalId("");
               setNewCard({ company: "", role: "", salary: "$", notes: "", logo: "" });
             }}>Add Job</Btn>
           </div>

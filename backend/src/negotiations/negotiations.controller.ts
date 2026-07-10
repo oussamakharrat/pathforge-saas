@@ -5,6 +5,7 @@ import {
   CreateNegotiationDto,
   UpdateNegotiationDto,
 } from './dto/negotiations.dto';
+import { AnalyzeOfferDto } from './dto/analyze-offer.dto';
 
 @Controller('negotiations')
 export class NegotiationsController {
@@ -18,6 +19,14 @@ export class NegotiationsController {
   @Get(':id')
   findOne(@CurrentUser() user: { id: string }, @Param('id') id: string) {
     return this.service.findOne(user.id, id);
+  }
+
+  @Post('analyze')
+  analyzeOffer(
+    @CurrentUser() user: { id: string },
+    @Body() dto: AnalyzeOfferDto,
+  ) {
+    return this.service.analyzeOffer(user.id, dto);
   }
 
   @Post()

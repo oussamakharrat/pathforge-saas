@@ -10,6 +10,8 @@ import { Field } from "../components/Field";
 import { BrandLogo } from "../components/BrandLogo";
 import { useAuth } from "../contexts/AuthContext";
 import OnboardingWizard from "../components/OnboardingWizard";
+import { api } from "@/lib/api";
+import { Modal } from "../components/Modal";
 
 export default function AuthPage({ mode: initialMode }: { mode: "login" | "register" }) {
   const [mode, setMode] = useState<"login" | "register">(initialMode);
@@ -20,6 +22,9 @@ export default function AuthPage({ mode: initialMode }: { mode: "login" | "regis
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showForgot, setShowForgot] = useState(false);
+  const [resetToken, setResetToken] = useState("");
+  const [newPassword, setNewPassword] = useState("");
   const navigate = useNavigate();
   const { login, register, updateProfile } = useAuth();
 
@@ -133,7 +138,7 @@ export default function AuthPage({ mode: initialMode }: { mode: "login" | "regis
             <Field label="Password" type={showPw ? "text" : "password"} placeholder="••••••••" value={pw} onChange={setPw} Left={Lock}
               Right={<button type="button" onClick={() => setShowPw(!showPw)} className="text-muted-foreground hover:text-foreground">{showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}</button>}
               error={errors.pw} />
-            {mode === "login" && <div className="text-right"><button type="button" onClick={() => toast.info("Password reset email sent!")} className="text-[12px] font-bold hover:underline" style={{ color: FLAME }}>Forgot password?</button></div>}
+            {mode === "login" && <div className="text-right"><button type="button" onClick={() => setShowForgot(true)} className="text-[12px] font-bold hover:underline" style={{ color: FLAME }}>Forgot password?</button></div>}
             <Btn type="submit" full size="md" disabled={loading}>
               {loading ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> {mode === "login" ? "Signing In..." : "Creating Account..."}</> : <>{mode === "login" ? "Sign In" : "Create Free Account"} <ArrowRight className="w-4 h-4" /></>}
             </Btn>
@@ -160,10 +165,48 @@ export default function AuthPage({ mode: initialMode }: { mode: "login" | "regis
           {/* Security signals */}
           <div className="mt-5 flex items-center justify-center gap-4 text-[10px] text-muted-foreground">
             <span className="flex items-center gap-1"><Lock className="w-3 h-3" /> Secure Authentication</span>
-            <span className="flex items-center gap-1"><Globe className="w-3 h-3" /> OAuth Encrypted</span>
           </div>
         </div>
       </div>
+
+      <Modal open={showForgot} onClose={() => setShowForgot(false)} title="Reset Password">
+        <div className="space-y-4">
+          {!resetToken ? (
+            <>
+              <Field label="Email" type="email" value={email} onChange={setEmail} Left={Mail} />
+              <Btn full onClick={async () => {
+                try {
+                  const res = await api.forgotPassword(email);
+                  if (res.resetToken) {
+                    setResetToken(res.resetToken);
+                    toast.success("Reset token generated (dev mode)");
+                  } else {
+                    toast.success(res.message);
+                  }
+                } catch {
+                  toast.error("Failed to request reset");
+                }
+              }}>Send Reset Link</Btn>
+            </>
+          ) : (
+            <>
+              <Field label="Reset Token" value={resetToken} onChange={setResetToken} />
+              <Field label="New Password" type="password" value={newPassword} onChange={setNewPassword} Left={Lock} />
+              <Btn full onClick={async () => {
+                try {
+                  await api.resetPassword(resetToken, newPassword);
+                  toast.success("Password updated — sign in now");
+                  setShowForgot(false);
+                  setResetToken("");
+                  setNewPassword("");
+                } catch {
+                  toast.error("Reset failed");
+                }
+              }}>Update Password</Btn>
+            </>
+          )}
+        </div>
+      </Modal>
     </div>
   );
 }

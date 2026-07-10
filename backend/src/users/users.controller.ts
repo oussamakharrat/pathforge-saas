@@ -5,6 +5,7 @@ import {
   UpdateProfileDto,
   UpsertUserSkillDto,
   UpdateUserSkillDto,
+  PurchaseServiceDto,
 } from './dto/users.dto';
 
 @Controller('users')
@@ -49,6 +50,24 @@ export class UsersController {
   @Delete('me/skills/:id')
   deleteSkill(@CurrentUser() user: { id: string }, @Param('id') id: string) {
     return this.usersService.deleteSkill(user.id, id);
+  }
+
+  @Post('me/purchased-services')
+  purchaseService(
+    @CurrentUser() user: { id: string },
+    @Body() dto: PurchaseServiceDto,
+  ) {
+    return this.usersService.purchaseService(user.id, dto);
+  }
+
+  @Get('me/export')
+  exportData(@CurrentUser() user: { id: string }) {
+    return this.usersService.exportData(user.id);
+  }
+
+  @Delete('me')
+  deleteAccount(@CurrentUser() user: { id: string }) {
+    return this.usersService.deleteAccount(user.id);
   }
 
   @Get('me/achievements')

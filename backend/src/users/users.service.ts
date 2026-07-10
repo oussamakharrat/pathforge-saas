@@ -7,6 +7,7 @@ import {
   UpdateProfileDto,
   UpsertUserSkillDto,
   UpdateUserSkillDto,
+  PurchaseServiceDto,
 } from './dto/users.dto';
 
 @Injectable()
@@ -191,5 +192,74 @@ export class UsersService {
       data: { seen: true },
       include: { badgeDefinition: true },
     });
+  }
+
+  async purchaseService(userId: string, dto: PurchaseServiceDto) {
+    const profile = await this.prisma.careerProfile.findUnique({
+      where: { userId },
+    });
+    const current = profile?.purchasedServices ?? [];
+    if (current.includes(dto.service)) {
+      return this.getMe(userId);
+    }
+
+    await this.prisma.careerProfile.upsert({
+      where: { userId },
+      create: { userId, purchasedServices: [dto.service] },
+      update: { purchasedServices: [...current, dto.service] },
+    });
+
+    return this.getMe(userId);
+  }
+
+  async exportData(userId: string) {
+    const user = await this.getMe(userId);
+    const [goals, skills, plans, applications, negotiations, resumes, portfolio, conversations] =
+      await Promise.all([
+        this.prisma.goal.findMany({ where: { userId } }),
+        this.prisma.userSkill.findMany({
+          where: { userId },
+          include: { skillCatalog: true },
+        }),
+        this.prisma.learningPlan.findMany({
+          where: { userId },
+          include: { items: true },
+        }),
+        this.prisma.application.findMany({
+          where: { userId },
+          include: { job: true, interviews: true, offers: true },
+        }),
+        this.prisma.negotiation.findMany({
+          where: { userId },
+          include: { offer: true },
+        }),
+        this.prisma.resume.findMany({
+          where: { userId },
+          include: { sections: true },
+        }),
+        this.prisma.portfolioProject.findMany({ where: { userId } }),
+        this.prisma.aIConversation.findMany({
+          where: { userId },
+          include: { messages: true },
+        }),
+      ]);
+
+    return {
+      exportedAt: new Date().toISOString(),
+      user,
+      goals,
+      skills,
+      learningPlans: plans,
+      applications,
+      negotiations,
+      resumes,
+      portfolio,
+      conversations,
+    };
+  }
+
+  async deleteAccount(userId: string) {
+    await this.prisma.user.delete({ where: { id: userId } });
+    return { deleted: true };
   }
 }

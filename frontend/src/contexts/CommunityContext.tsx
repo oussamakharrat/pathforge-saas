@@ -21,6 +21,8 @@ interface CommunityContextType {
   refresh: () => Promise<void>;
   createThread: (title: string, category: string, body?: string) => Promise<void>;
   likeThread: (apiId: string) => Promise<void>;
+  loadThread: (apiId: string) => Promise<Record<string, unknown> | null>;
+  addComment: (postId: string, body: string) => Promise<void>;
 }
 
 const CommunityContext = createContext<CommunityContextType | null>(null);
@@ -66,8 +68,27 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
     }
   }, [refresh]);
 
+  const loadThread = useCallback(async (apiId: string) => {
+    try {
+      return await api.getCommunityPost(apiId);
+    } catch {
+      toast.error('Failed to load thread');
+      return null;
+    }
+  }, []);
+
+  const addComment = useCallback(async (postId: string, body: string) => {
+    try {
+      await api.createCommunityComment(postId, body);
+      toast.success('Comment posted');
+      await refresh();
+    } catch {
+      toast.error('Failed to post comment');
+    }
+  }, [refresh]);
+
   return (
-    <CommunityContext.Provider value={{ threads, loading, refresh, createThread, likeThread }}>
+    <CommunityContext.Provider value={{ threads, loading, refresh, createThread, likeThread, loadThread, addComment }}>
       {children}
     </CommunityContext.Provider>
   );

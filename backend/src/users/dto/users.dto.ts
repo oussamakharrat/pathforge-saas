@@ -20,6 +20,11 @@ export class UpdateProfileDto {
   @IsOptional() @IsArray() preferredIndustries?: string[];
   @IsOptional() @IsBoolean() onboardingComplete?: boolean;
   @IsOptional() @IsString() displayName?: string;
+  @IsOptional() @IsArray() purchasedServices?: string[];
+}
+
+export class PurchaseServiceDto {
+  @IsString() service: string;
 }
 
 export class UpsertUserSkillDto {
