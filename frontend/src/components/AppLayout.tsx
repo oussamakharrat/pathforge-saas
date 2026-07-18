@@ -5,10 +5,8 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { AppSidebar } from '@/components/AppSidebar';
 import { AvatarDropdown } from '@/components/AvatarDropdown';
-import { MobileNav } from '@/components/MobileNav';
 import { useUpgrade } from '@/contexts/UpgradeContext';
 import { NotificationBell } from '@/components/NotificationBell';
-import { Menu } from 'lucide-react';
 import { CARBON, NAV_ITEMS } from '@/lib/constants';
 import { Navigate } from '@/lib/router';
 import { PageLoading } from '@/components/PageLoading';
@@ -63,19 +61,11 @@ export function AppLayout({ children }: { children: ReactNode }) {
     <div className="flex min-h-screen bg-background">
       <AppSidebar expanded={sidebarExpanded} setExpanded={setSidebarExpanded} />
       <div
-        className="flex-1 flex flex-col transition-all duration-200 ease-in-out"
+        className="flex-1 flex flex-col transition-all duration-200 ease-in-out overflow-y-auto"
         style={{ marginLeft: sidebarExpanded ? 256 : 56 }}
       >
-        <header className="h-12 border-b border-border flex items-center justify-between px-3 gap-2 bg-card flex-shrink-0">
+        <header className="h-12 border-b border-border flex items-center justify-between px-3 gap-2 bg-card flex-shrink-0 sticky top-0 z-30">
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => setSidebarExpanded(!sidebarExpanded)}
-              className="w-8 h-8 rounded-lg flex md:hidden items-center justify-center hover:bg-secondary transition-all"
-              style={{ color: CARBON }}
-              aria-label="Toggle sidebar"
-            >
-              <Menu className="w-4 h-4" />
-            </button>
             <h1 className="text-[13px] font-semibold tracking-tight" style={{ color: CARBON }}>
               {pageTitle}
             </h1>
@@ -92,10 +82,9 @@ export function AppLayout({ children }: { children: ReactNode }) {
             <AvatarDropdown />
           </div>
         </header>
-        <main className="flex-1 overflow-y-auto p-3 md:p-4 lg:p-5 pb-20 md:pb-5">
+        <main className="flex-1 p-3 md:p-4 lg:p-5">
           {showDashboardFallback ? <Navigate to="/app/dashboard" replace /> : children}
         </main>
-        <MobileNav />
       </div>
     </div>
   );

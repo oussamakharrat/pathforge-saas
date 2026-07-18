@@ -136,7 +136,7 @@ export default function DashboardPage() {
       return `You're ${progress}% toward "${profile.targetRole}". Keep going!`;
     }
     return "Set your first goal to get personalized insights.";
-  }, [nextStepImpact, weakSkills, skillJobInsight, careerPath, profile?.targetRole, goals.length, avgGoalProgress, avgSkillPct]);
+  }, [nextStepImpact, weakSkills, skillJobInsight, careerPath, profile, goals.length, avgGoalProgress, avgSkillPct]);
 
   return (
     <div className="space-y-6">
@@ -315,7 +315,7 @@ export default function DashboardPage() {
               <p className="text-xs text-muted-foreground">Mock interviews, salary negotiation, and AI coaching — all in one place.</p>
             </div>
           </div>
-          <Btn size="sm" onClick={() => navigate("/app/pricing")}>
+          <Btn size="sm" onClick={() => navigate("/pricing")}>
             Upgrade <ArrowRight className="w-3.5 h-3.5" />
           </Btn>
         </div>
@@ -329,5 +329,5 @@ export default function DashboardPage() {
         </p>
       </div>
     </div>
-  );
+  )
 }

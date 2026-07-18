@@ -10,6 +10,7 @@ import { cn } from "../lib/utils";
 import { FLAME, CARBON, ALABASTER, DUST } from "../lib/constants";
 import { Btn } from "../components/Btn";
 import { BrandLogo } from "../components/BrandLogo";
+import { UserAvatar } from "../components/UserAvatar";
 import { useAuth } from "../contexts/AuthContext";
 import { FAQS } from "../data/initial-data";
 import type { Plan } from "../data/types";
@@ -19,6 +20,7 @@ function PricingNav() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const navigate = useNavigate();
+  const { authed, planLabel, plan, user, profile } = useAuth();
 
   useEffect(() => {
     const h = () => setScrolled(window.scrollY > 20);
@@ -49,8 +51,20 @@ function PricingNav() {
         </div>
 
         <div className="flex items-center gap-2">
-          <Btn variant="ghost" size="sm" onClick={() => navigate("/login")} className="hidden md:flex">Sign In</Btn>
-          <Btn size="sm" onClick={() => navigate("/register")}>Get Started Free <ArrowRight className="w-3.5 h-3.5" /></Btn>
+          {authed ? (
+            <button onClick={() => navigate("/app/dashboard")} className="flex items-center gap-2.5 group">
+              <div className="hidden md:block text-right">
+                <p className="text-[12px] font-bold leading-tight" style={{ color: CARBON }}>{user?.name || user?.email?.split('@')[0]}</p>
+                <p className="text-[10px] font-medium text-muted-foreground leading-tight">{planLabel} Plan</p>
+              </div>
+              <UserAvatar src={profile?.avatarUrl} name={user?.name || user?.email} size="sm" />
+            </button>
+          ) : (
+            <>
+              <Btn variant="ghost" size="sm" onClick={() => navigate("/login")} className="hidden md:flex">Sign In</Btn>
+              <Btn size="sm" onClick={() => navigate("/register")}>Get Started Free <ArrowRight className="w-3.5 h-3.5" /></Btn>
+            </>
+          )}
           <button className="md:hidden p-2" onClick={() => setMobileOpen(!mobileOpen)} style={{ color: CARBON }}>
             {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
@@ -61,7 +75,17 @@ function PricingNav() {
           {["Features", "Pricing", "Services"].map(item => (
             <button key={item} onClick={() => { navigate(item === "Features" ? "/#features" : item === "Services" ? "/#services" : "/pricing"); setMobileOpen(false); }} className="block w-full text-left text-[14px] font-semibold py-2" style={{ color: CARBON }}>{item}</button>
           ))}
-          <Btn size="sm" full onClick={() => navigate("/register")}>Get Started Free</Btn>
+          {authed ? (
+            <button onClick={() => navigate("/app/dashboard")} className="flex items-center gap-3 w-full py-2">
+              <UserAvatar src={profile?.avatarUrl} name={user?.name || user?.email} size="sm" />
+              <div className="text-left">
+                <p className="text-[13px] font-bold" style={{ color: CARBON }}>{user?.name || user?.email?.split('@')[0]}</p>
+                <p className="text-[11px] text-muted-foreground">{planLabel} Plan</p>
+              </div>
+            </button>
+          ) : (
+            <Btn size="sm" full onClick={() => navigate("/register")}>Get Started Free</Btn>
+          )}
         </div>
       )}
     </nav>

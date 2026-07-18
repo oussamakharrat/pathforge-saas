@@ -90,7 +90,7 @@ export function AppSidebar({ expanded, setExpanded }: { expanded: boolean; setEx
         </div>
         <button
           onClick={() => setExpanded(!expanded)}
-          className="w-8 h-8 rounded-lg hidden md:flex items-center justify-center transition-all hover:bg-white/5"
+          className="w-8 h-8 rounded-lg flex items-center justify-center transition-all hover:bg-white/5"
           style={{ color: "rgba(230,232,230,0.7)" }}
           aria-label={expanded ? "Collapse sidebar" : "Expand sidebar"}
         >
