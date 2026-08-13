@@ -9,10 +9,12 @@ async function bootstrap() {
   app.use(json({ limit: '512kb' }));
   app.use(urlencoded({ extended: true, limit: '512kb' }));
 
+  const corsOrigins = process.env.CORS_ORIGINS?.split(',').map((origin) => origin.trim());
+  if (!corsOrigins || corsOrigins.length === 0) {
+    throw new Error('CORS_ORIGINS environment variable is required and must contain at least one origin');
+  }
   app.enableCors({
-    origin: process.env.CORS_ORIGINS?.split(',').map((origin) =>
-      origin.trim(),
-    ) ?? ['http://localhost:3000', 'http://localhost:3001'],
+    origin: corsOrigins,
     credentials: true,
   });
 

@@ -364,7 +364,7 @@ export default function PricingPage() {
               <p className="text-[12px] leading-relaxed" style={{ color: DUST }}>The AI career platform for ambitious engineers.</p>
             </div>
             {[
-              { title: "Product", links: ["Dashboard", "AI Coach", "Mock Interviews", "Job Tracker"] },
+              { title: "Product", links: [{ name: "Dashboard", to: "/app/dashboard" }, { name: "AI Coach", to: "/app/ai-coach" }, { name: "Mock Interviews", to: "/app/interviews" }, { name: "Job Tracker", to: "/app/jobs" }] },
               { title: "Services", links: [{ name: "Resume Review", to: "/app/services" }, { name: "CV Rewrite", to: "/app/services" }, { name: "LinkedIn Opt.", to: "/app/services" }, { name: "Salary Coach", to: "/app/negotiate" }] },
               { title: "Company", links: [{ name: "About", to: "/" }, { name: "Blog", to: "https://blog.pathforge.dev" }, { name: "Careers", to: "https://careers.pathforge.dev" }, { name: "Privacy", to: "/" }] },
             ].map(col => (

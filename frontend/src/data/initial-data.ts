@@ -5,10 +5,10 @@ import { FLAME, CARBON } from "../lib/constants";
 import type { Goal, Skill, LearningStep, KanbanData, Conversation, QuizQuestion } from "./types";
 
 export const INITIAL_GOALS: Goal[] = [
-  { id: 1, title: "Senior Full-Stack Engineer", progress: 62, deadline: "Dec 2025", steps: 8, done: 5 },
-  { id: 2, title: "Staff Engineering Role", progress: 24, deadline: "Jun 2026", steps: 12, done: 3 },
-  { id: 3, title: "Ship 3 SaaS Products", progress: 33, deadline: "Mar 2026", steps: 9, done: 3 },
-  { id: 4, title: "50 Open Source PRs", progress: 78, deadline: "Sep 2025", steps: 10, done: 8 },
+  { id: 1, apiId: "seed-goal-1", title: "Senior Full-Stack Engineer", progress: 62, deadline: "Dec 2025", steps: 8, done: 5, milestones: [] },
+  { id: 2, apiId: "seed-goal-2", title: "Staff Engineering Role", progress: 24, deadline: "Jun 2026", steps: 12, done: 3, milestones: [] },
+  { id: 3, apiId: "seed-goal-3", title: "Ship 3 SaaS Products", progress: 33, deadline: "Mar 2026", steps: 9, done: 3, milestones: [] },
+  { id: 4, apiId: "seed-goal-4", title: "50 Open Source PRs", progress: 78, deadline: "Sep 2025", steps: 10, done: 8, milestones: [] },
 ];
 
 export const INITIAL_SKILLS: Skill[] = [

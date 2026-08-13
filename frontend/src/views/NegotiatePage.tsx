@@ -75,16 +75,16 @@ export default function NegotiatePage() {
   const offered = parseInt(offerSalary) || 145000;
 
   // Compute market value from role + location
-  const { market, target, confidence, gap } = useMemo(() => {
-    const roleMultiplier = Object.entries(ROLE_MULTIPLIERS).reduce((best, [key, mult]) => {
+  const { market, target, confidence, gap, roleMultiplier, locationAdj } = useMemo(() => {
+    const computedRoleMultiplier = Object.entries(ROLE_MULTIPLIERS).reduce((best, [key, mult]) => {
       return role.toLowerCase().includes(key.toLowerCase()) ? mult : best;
     }, 1.20);
 
-    const locationAdj = Object.entries(LOCATION_ADJUSTMENT).reduce((best, [key, adj]) => {
+    const computedLocationAdj = Object.entries(LOCATION_ADJUSTMENT).reduce((best, [key, adj]) => {
       return location.toLowerCase().includes(key.toLowerCase()) ? adj : best;
     }, 1.00);
 
-    const computedMarket = Math.round(offered * roleMultiplier * locationAdj);
+    const computedMarket = Math.round(offered * computedRoleMultiplier * computedLocationAdj);
     const computedTarget = Math.round(offered + (computedMarket - offered) * 0.85);
     const computedGap = computedMarket - offered;
     const computedConfidence = Math.min(96, Math.max(40, Math.round(55 + (computedGap / offered) * 100)));
@@ -94,6 +94,8 @@ export default function NegotiatePage() {
       target: computedTarget,
       confidence: computedConfidence,
       gap: computedGap,
+      roleMultiplier: computedRoleMultiplier,
+      locationAdj: computedLocationAdj,
     };
   }, [offered, role, location]);
 
@@ -194,7 +196,7 @@ export default function NegotiatePage() {
       </Card>
       <Card className="p-4 mb-4" hover={false}>
         <h3 className="text-[12px] font-black mb-2.5" style={{ color: CARBON }}>Market Breakdown</h3>
-        <div className="space-y-2">{[{ l: "Base P50", v: `$${Math.round(offered * 1.1).toLocaleString()}` }, { l: "Base P75", v: `$${market.toLocaleString()}` }, { l: "Total comp P50", v: `$${Math.round(offered * 1.35).toLocaleString()}` }, { l: "Role multiplier", v: `${(market / offered / (Object.values(LOCATION_ADJUSTMENT).includes(location.toLowerCase() ? 1 : 1) || 1)).toFixed(2)}x` }, { l: "Location adjustment", v: `${Object.entries(LOCATION_ADJUSTMENT).find(([k]) => location.toLowerCase().includes(k.toLowerCase()))?.[1]?.toFixed(2) ?? "1.00"}x` }].map(r => (
+        <div className="space-y-2">{[{ l: "Base P50", v: `$${Math.round(offered * 1.1).toLocaleString()}` }, { l: "Base P75", v: `$${market.toLocaleString()}` }, { l: "Total comp P50", v: `$${Math.round(offered * 1.35).toLocaleString()}` }, { l: "Role multiplier", v: `${roleMultiplier.toFixed(2)}x` }, { l: "Location adjustment", v: `${locationAdj.toFixed(2)}x` }].map(r => (
           <div key={r.l} className="flex justify-between py-2 border-b border-border last:border-0"><span className="text-[13px]" style={{ color: CARBON }}>{r.l}</span><span className="text-[13px] font-black" style={{ color: CARBON }}>{r.v}</span></div>
         ))}</div>
       </Card>

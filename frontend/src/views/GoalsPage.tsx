@@ -355,7 +355,7 @@ export default function GoalsPage() {
         <p className="text-[13px] text-muted-foreground mb-5">This will also remove linked learning steps. This cannot be undone.</p>
         <div className="flex gap-3">
           <Btn variant="outline" full onClick={() => setConfirmDelete(null)}>Cancel</Btn>
-          <Btn variant="danger" full onClick={() => { deleteGoal(confirmDelete); setConfirmDelete(null); if (sel === confirmDelete) setSel(null); }}>Delete</Btn>
+          <Btn variant="danger" full onClick={() => { if (confirmDelete === null) return; deleteGoal(confirmDelete); setConfirmDelete(null); if (sel === confirmDelete) setSel(null); }}>Delete</Btn>
         </div>
       </Modal>
     </div>

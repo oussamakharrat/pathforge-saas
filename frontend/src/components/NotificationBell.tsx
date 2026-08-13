@@ -72,7 +72,7 @@ export function NotificationBell() {
 
   const handleNotifClick = (n: typeof notifications[0]) => {
     markAsRead(n.id);
-    const link = normalizeNotificationLink(n.link);
+    const link = normalizeNotificationLink(n.link ?? '');
     if (link) navigate(link);
     setOpen(false);
   };

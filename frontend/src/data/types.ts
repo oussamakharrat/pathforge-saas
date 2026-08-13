@@ -115,6 +115,10 @@ export type LearningStep = {
   range: string;
   tag: string;
   active?: boolean;
+  goalLegacyId?: number;
+  goalId?: string;
+  planId?: string;
+  itemId?: string;
 };
 
 export type Message = {

@@ -19,6 +19,7 @@ import type { Skill } from "../entities/skill";
 import type { Goal } from "../entities/goal";
 import { toggleMilestone } from "../entities/goal";
 import type { LearningPlan } from "../entities/learning-plan";
+import { toggleLearningItem } from "../entities/learning-plan";
 import type { JobApplication } from "../entities/job-application";
 import { getStatusTransitionEvent } from "../entities/job-application";
 import type { Interview } from "../entities/interview";

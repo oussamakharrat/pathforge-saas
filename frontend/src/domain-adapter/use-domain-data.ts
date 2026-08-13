@@ -13,14 +13,14 @@
  */
 
 import { useMemo } from "react";
-import type { User } from "../../domain/entities";
+import type { User } from "@/domain/entities";
 import {
   computeCareerMetrics,
   buildRelationshipGraph,
   buildImpactChains,
-} from "../../domain/services";
-import type { ComputedMetrics } from "../../domain/services/career-progression.service";
-import type { ProgressionInput } from "../../domain/services/career-progression.service";
+} from "@/domain/services";
+import type { ComputedMetrics } from "@/domain/services/career-progression.service";
+import type { ProgressionInput } from "@/domain/services/career-progression.service";
 import { toLegacySkills, toLegacyGoals, toLegacyLearningSteps, toLegacyKanbanData } from "./adapters";
 
 // ── Domain Data Hook ──

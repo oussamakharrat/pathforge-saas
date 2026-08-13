@@ -98,7 +98,7 @@ export default function CommunityPage() {
               <div className="w-9 h-9 rounded-xl flex items-center justify-center text-[11px] font-black text-white flex-shrink-0" style={{ backgroundColor: CARBON }}>{t.avatar}</div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1 flex-wrap">
-                  {t.pinned && <Chip variant="orange">Pinned</Chip>}
+                  {t.pinned && <Chip variant="flame">Pinned</Chip>}
                   {t.solved && <Chip variant="green">Solved</Chip>}
                   <Chip variant="ghost">{t.category}</Chip>
                 </div>

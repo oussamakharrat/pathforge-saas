@@ -1,6 +1,7 @@
 import { FLAME, CARBON, DUST, ALABASTER } from "../lib/constants";
+import { cn } from "../lib/utils";
 
-export function Chip({ children, variant = "default" }: { children: React.ReactNode; variant?: "default" | "flame" | "green" | "amber" | "ghost" }) {
+export function Chip({ children, variant = "default", className }: { children: React.ReactNode; variant?: "default" | "flame" | "green" | "amber" | "ghost"; className?: string }) {
   const s: Record<string, { bg: string; color: string; border?: string }> = {
     default: { bg: ALABASTER, color: CARBON },
     flame: { bg: "rgba(241,80,37,0.12)", color: FLAME },
@@ -10,7 +11,7 @@ export function Chip({ children, variant = "default" }: { children: React.ReactN
   };
   const st = s[variant];
   return (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold tracking-wide"
+    <span className={cn("inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold tracking-wide", className)}
       style={{ backgroundColor: st.bg, color: st.color, border: st.border }}>
       {children}
     </span>
