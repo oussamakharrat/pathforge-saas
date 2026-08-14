@@ -3,11 +3,13 @@ import { ReactionType } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsHelper } from '../common/notifications.helper';
 import { GamificationUnlockService } from '../common/gamification-unlock.service';
-import { assertFound } from '../common/assertions';
+import { assertFound, assertOwner } from '../common/assertions';
 import {
   CreatePostDto,
   CreateCommentDto,
   CreateReactionDto,
+  UpdatePostDto,
+  UpdateCommentDto,
 } from './dto/community.dto';
 
 @Injectable()
@@ -112,5 +114,84 @@ export class CommunityService {
     } catch {
       throw new BadRequestException('Reaction already exists');
     }
+  }
+
+  async updatePost(userId: string, postId: string, dto: UpdatePostDto) {
+    const post = assertFound(
+      await this.prisma.communityPost.findUnique({ where: { id: postId } }),
+      'Post',
+    );
+    assertOwner(post.userId, userId);
+
+    return this.prisma.communityPost.update({
+      where: { id: postId },
+      data: {
+        title: dto.title,
+        body: dto.body,
+        tags: dto.tags,
+      },
+    });
+  }
+
+  async deletePost(userId: string, postId: string) {
+    const post = assertFound(
+      await this.prisma.communityPost.findUnique({ where: { id: postId } }),
+      'Post',
+    );
+    assertOwner(post.userId, userId);
+
+    await this.prisma.communityPost.update({
+      where: { id: postId },
+      data: { isArchived: true },
+    });
+    return { deleted: true };
+  }
+
+  async updateComment(userId: string, commentId: string, dto: UpdateCommentDto) {
+    const comment = assertFound(
+      await this.prisma.communityComment.findUnique({ where: { id: commentId } }),
+      'Comment',
+    );
+    assertOwner(comment.userId, userId);
+
+    return this.prisma.communityComment.update({
+      where: { id: commentId },
+      data: { body: dto.body },
+    });
+  }
+
+  async deleteComment(userId: string, commentId: string) {
+    const comment = assertFound(
+      await this.prisma.communityComment.findUnique({
+        where: { id: commentId },
+        include: { post: true },
+      }),
+      'Comment',
+    );
+    assertOwner(comment.userId, userId);
+
+    await this.prisma.communityComment.delete({ where: { id: commentId } });
+    await this.prisma.communityPost.update({
+      where: { id: comment.postId },
+      data: { commentCount: { decrement: 1 } },
+    });
+    return { deleted: true };
+  }
+
+  async removeReaction(userId: string, postId: string) {
+    await this.getPost(postId);
+    const existing = await this.prisma.communityReaction.findFirst({
+      where: { postId, userId },
+    });
+    if (!existing) {
+      throw new BadRequestException('Reaction not found');
+    }
+
+    await this.prisma.communityReaction.delete({ where: { id: existing.id } });
+    await this.prisma.communityPost.update({
+      where: { id: postId },
+      data: { reactionCount: { decrement: 1 } },
+    });
+    return { removed: true };
   }
 }

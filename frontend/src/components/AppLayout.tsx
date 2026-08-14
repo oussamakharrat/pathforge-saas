@@ -18,7 +18,7 @@ const PLAN_COLORS: Record<string, string> = {
 };
 
 export function AppLayout({ children }: { children: ReactNode }) {
-  const { authed, isLoading, plan, planLabel, canAccess } = useAuth();
+  const { authed, isLoading, plan, planLabel, canAccess, emailVerified, resendVerification } = useAuth();
   const { requestUpgrade, dismissUpgrade } = useUpgrade();
   const pathname = usePathname() ?? '/app/dashboard';
   const router = useRouter();
@@ -82,6 +82,19 @@ export function AppLayout({ children }: { children: ReactNode }) {
             <AvatarDropdown />
           </div>
         </header>
+        {!emailVerified && (
+          <div className="px-3 md:px-4 lg:px-5 py-2 bg-amber-50 border-b border-amber-200 flex items-center justify-between gap-3 flex-shrink-0">
+            <p className="text-[12px] text-amber-900">
+              Please verify your email to secure your account and receive important updates.
+            </p>
+            <button
+              onClick={() => void resendVerification()}
+              className="text-[11px] font-bold px-3 py-1.5 rounded-lg bg-amber-600 text-white hover:bg-amber-700 transition-all whitespace-nowrap"
+            >
+              Resend email
+            </button>
+          </div>
+        )}
         <main className="flex-1 p-3 md:p-4 lg:p-5">
           {showDashboardFallback ? <Navigate to="/app/dashboard" replace /> : children}
         </main>

@@ -102,6 +102,42 @@ export const api = {
     });
   },
 
+  logout(refreshToken?: string, allDevices = false) {
+    return request<{ message: string }>('/auth/logout', {
+      method: 'POST',
+      body: JSON.stringify({ refreshToken, allDevices }),
+    });
+  },
+
+  verifyEmail(token: string) {
+    return request<{ message: string }>('/auth/verify-email', {
+      method: 'POST',
+      body: JSON.stringify({ token }),
+    });
+  },
+
+  resendVerificationEmail() {
+    return request<{
+      message: string;
+      delivered?: boolean;
+      verificationToken?: string;
+      verifyLink?: string;
+      deliveryError?: string;
+    }>('/auth/resend-verification', { method: 'POST' });
+  },
+
+  getOAuthProviders() {
+    return request<{ google: boolean; github: boolean }>('/auth/oauth/providers');
+  },
+
+  getGoogleOAuthUrl() {
+    return `${API_BASE}/auth/google`;
+  },
+
+  getGithubOAuthUrl() {
+    return `${API_BASE}/auth/github`;
+  },
+
   getProfile() {
     return request<{
       id: string;
@@ -109,6 +145,7 @@ export const api = {
       name: string | null;
       streakDays: number;
       longestStreak: number;
+      emailVerified: boolean;
       createdAt: string;
       profile: Record<string, unknown> | null;
       plan: 'free' | 'pro' | 'premium';
@@ -188,6 +225,10 @@ export const api = {
     return request(`/learning-plans/${planId}/items/${itemId}`, { method: 'DELETE' });
   },
 
+  deleteLearningPlan(planId: string) {
+    return request(`/learning-plans/${planId}`, { method: 'DELETE' });
+  },
+
   addLearningItem(planId: string, data: Record<string, unknown>) {
     return request<Record<string, unknown>>(`/learning-plans/${planId}/items`, {
       method: 'POST',
@@ -213,6 +254,10 @@ export const api = {
 
   getApplications() {
     return request<Record<string, unknown>[]>('/jobs/applications');
+  },
+
+  getApplication(id: string) {
+    return request<Record<string, unknown>>(`/jobs/applications/${id}`);
   },
 
   getJobPostings() {
@@ -285,6 +330,10 @@ export const api = {
     return request<Record<string, unknown>>(`/negotiations/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
   },
 
+  deleteNegotiation(id: string) {
+    return request(`/negotiations/${id}`, { method: 'DELETE' });
+  },
+
   analyzeNegotiation(data: Record<string, unknown>) {
     return request<Record<string, unknown>>('/negotiations/analyze', {
       method: 'POST',
@@ -349,6 +398,32 @@ export const api = {
     });
   },
 
+  updateCommunityPost(postId: string, data: Record<string, unknown>) {
+    return request<Record<string, unknown>>(`/community/posts/${postId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  },
+
+  deleteCommunityPost(postId: string) {
+    return request(`/community/posts/${postId}`, { method: 'DELETE' });
+  },
+
+  updateCommunityComment(commentId: string, body: string) {
+    return request<Record<string, unknown>>(`/community/comments/${commentId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ body }),
+    });
+  },
+
+  deleteCommunityComment(commentId: string) {
+    return request(`/community/comments/${commentId}`, { method: 'DELETE' });
+  },
+
+  removePostReaction(postId: string) {
+    return request(`/community/posts/${postId}/reactions`, { method: 'DELETE' });
+  },
+
   getNotifications(unreadOnly = false) {
     return request<Record<string, unknown>[]>(`/notifications${unreadOnly ? '?unreadOnly=true' : ''}`);
   },
@@ -359,6 +434,14 @@ export const api = {
 
   markAllNotificationsRead() {
     return request('/notifications/read-all', { method: 'PATCH' });
+  },
+
+  deleteNotification(id: string) {
+    return request(`/notifications/${id}`, { method: 'DELETE' });
+  },
+
+  clearReadNotifications() {
+    return request('/notifications/read', { method: 'DELETE' });
   },
 
   getSubscription() {
@@ -444,6 +527,10 @@ export const api = {
       method: 'PATCH',
       body: JSON.stringify(data),
     });
+  },
+
+  deleteResumeSection(resumeId: string, sectionId: string) {
+    return request(`/resumes/${resumeId}/sections/${sectionId}`, { method: 'DELETE' });
   },
 
   getCommunityPost(id: string) {

@@ -171,6 +171,9 @@ export type UserProfile = {
   biggestChallenges: string[];
   onboardingComplete: boolean;
   purchasedServices?: string[];
+  notifyPush?: boolean;
+  notifyInsights?: boolean;
+  notifyWeekly?: boolean;
 };
 
 export type KanbanData = Record<KanbanCol, KanbanCard[]>;

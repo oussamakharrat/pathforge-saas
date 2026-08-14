@@ -20,7 +20,7 @@ export default function LearningPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const filterGoalId = searchParams.get("goalId") ? Number(searchParams.get("goalId")) : null;
-  const { learningSteps, toggleStep, deleteLearningStep, addLearningItem } = useCareerData();
+  const { learningSteps, toggleStep, deleteLearningStep, deleteLearningPlan, addLearningItem } = useCareerData();
   const [showAddStep, setShowAddStep] = useState(false);
   const [newStepTitle, setNewStepTitle] = useState("");
   const [newStepTag, setNewStepTag] = useState("Skills");
@@ -50,7 +50,22 @@ export default function LearningPage() {
       {filterGoalId && (
         <div className="mb-4 flex items-center justify-between p-3.5 rounded-xl border border-primary/20 bg-primary/5 text-primary text-[12px] font-medium">
           <span className="flex items-center gap-1.5"><Sparkles className="w-4 h-4" /> Filtered by Goal Roadmap</span>
-          <button onClick={clearFilter} className="underline font-bold hover:text-orange-700">Clear Filter</button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => {
+                toast.error("Delete entire learning plan for this goal?", {
+                  action: {
+                    label: "Delete plan",
+                    onClick: () => void deleteLearningPlan(filterGoalId).then(clearFilter),
+                  },
+                });
+              }}
+              className="text-red-600 font-bold hover:underline"
+            >
+              Delete plan
+            </button>
+            <button onClick={clearFilter} className="underline font-bold hover:text-orange-700">Clear Filter</button>
+          </div>
         </div>
       )}
 

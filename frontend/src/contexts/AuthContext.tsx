@@ -35,13 +35,16 @@ interface AuthContextType {
   profile: UserProfile | null;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, name?: string) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
   setPlan: (p: Plan) => Promise<void>;
   cancelPlan: () => Promise<void>;
   updateProfile: (data: Partial<UserProfile>) => Promise<void>;
   canAccess: (page: string) => boolean;
   planLabel: string;
   lockedPages: string[];
+  emailVerified: boolean;
+  resendVerification: () => Promise<void>;
+  refreshProfile: () => Promise<void>;
 }
 
 const PLAN_LABELS: Record<Plan, string> = { free: 'Free', pro: 'Pro', premium: 'Premium' };
@@ -67,6 +70,9 @@ function mapCareerProfile(
     biggestChallenges: [],
     onboardingComplete: Boolean(cp?.onboardingComplete),
     purchasedServices: (cp?.purchasedServices as string[]) ?? [],
+    notifyPush: cp?.notifyPush !== false,
+    notifyInsights: cp?.notifyInsights !== false,
+    notifyWeekly: cp?.notifyWeekly !== false,
   };
 }
 
@@ -94,6 +100,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [plan, setPlanState] = useState<Plan>('free');
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [emailVerified, setEmailVerified] = useState(true);
 
   const applyProfileResponse = useCallback((p: Awaited<ReturnType<typeof api.getProfile>>) => {
     setUser({
@@ -104,6 +111,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       streakDays: p.streakDays,
     });
     setPlanState(p.plan ?? 'free');
+    setEmailVerified(Boolean(p.emailVerified));
     setProfile(
       mapCareerProfile(p.profile, {
         name: p.name ?? '',
@@ -160,12 +168,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await hydrate();
   }, [hydrate]);
 
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
+    const refreshToken = localStorage.getItem('refreshToken') ?? undefined;
+    try {
+      await api.logout(refreshToken);
+    } catch {
+      /* clear locally even if server call fails */
+    }
     localStorage.removeItem('token');
     localStorage.removeItem('refreshToken');
     setUser(null);
     setPlanState('free');
     setProfile(null);
+    setEmailVerified(true);
+  }, []);
+
+  const resendVerification = useCallback(async () => {
+    try {
+      await api.resendVerificationEmail();
+      toast.success('Verification email sent! Check your inbox.');
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : 'Failed to send verification email',
+        { duration: 8000 },
+      );
+      throw err;
+    }
   }, []);
 
   const setPlan = useCallback(async (p: Plan) => {
@@ -195,6 +223,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         bio: data.bio,
         avatarUrl: data.avatarUrl,
         onboardingComplete: data.onboardingComplete,
+        notifyPush: data.notifyPush,
+        notifyInsights: data.notifyInsights,
+        notifyWeekly: data.notifyWeekly,
       }) as Record<string, unknown>;
 
       const mapped = mapMeToState(updated);
@@ -234,6 +265,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         canAccess,
         planLabel,
         lockedPages,
+        emailVerified,
+        resendVerification,
+        refreshProfile: hydrate,
       }}
     >
       {children}

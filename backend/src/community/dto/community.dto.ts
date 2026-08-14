@@ -14,3 +14,13 @@ export class CreateCommentDto {
 export class CreateReactionDto {
   @IsString() type: string;
 }
+
+export class UpdatePostDto {
+  @IsOptional() @IsString() title?: string;
+  @IsOptional() @IsString() body?: string;
+  @IsOptional() @IsArray() tags?: string[];
+}
+
+export class UpdateCommentDto {
+  @IsString() body: string;
+}

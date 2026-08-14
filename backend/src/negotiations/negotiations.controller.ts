@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Body, Param } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param } from '@nestjs/common';
 import { NegotiationsService } from './negotiations.service';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import {
@@ -44,5 +44,10 @@ export class NegotiationsController {
     @Body() dto: UpdateNegotiationDto,
   ) {
     return this.service.update(user.id, id, dto);
+  }
+
+  @Delete(':id')
+  remove(@CurrentUser() user: { id: string }, @Param('id') id: string) {
+    return this.service.remove(user.id, id);
   }
 }

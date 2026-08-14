@@ -24,6 +24,7 @@ interface ResumeContextType {
   deleteResume: (id: string) => Promise<void>;
   addSection: (resumeId: string, section: { type: string; title: string; content: string }) => Promise<void>;
   updateSection: (resumeId: string, sectionId: string, data: { title?: string; content?: string }) => Promise<void>;
+  deleteSection: (resumeId: string, sectionId: string) => Promise<void>;
 }
 
 const ResumeContext = createContext<ResumeContextType | null>(null);
@@ -81,6 +82,16 @@ export function ResumeProvider({ children }: { children: ReactNode }) {
     }
   }, [refresh]);
 
+  const deleteSection = useCallback(async (resumeId: string, sectionId: string) => {
+    try {
+      await api.deleteResumeSection(resumeId, sectionId);
+      toast.success('Section deleted');
+      await refresh();
+    } catch {
+      toast.error('Failed to delete section');
+    }
+  }, [refresh]);
+
   const updateResume = useCallback(async (id: string, data: Record<string, unknown>) => {
     try {
       await api.updateResume(id, data);
@@ -101,7 +112,7 @@ export function ResumeProvider({ children }: { children: ReactNode }) {
   }, [refresh]);
 
   return (
-    <ResumeContext.Provider value={{ resumes, loading, refresh, createResume, updateResume, deleteResume, addSection, updateSection }}>
+    <ResumeContext.Provider value={{ resumes, loading, refresh, createResume, updateResume, deleteResume, addSection, updateSection, deleteSection }}>
       {children}
     </ResumeContext.Provider>
   );

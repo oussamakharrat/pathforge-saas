@@ -90,8 +90,24 @@ export default function SettingsPage() {
       setRole(profile?.currentRole ?? profile?.targetRole ?? "");
       setLocation(profile?.location ?? "");
       setAvatarUrl(profile?.avatarUrl ?? "");
+      setNotif(profile?.notifyPush !== false);
+      setInsights(profile?.notifyInsights !== false);
+      setWeekly(profile?.notifyWeekly === true);
     });
   }, [user, profile]);
+
+  const saveNotificationPref = async (
+    key: "notifyPush" | "notifyInsights" | "notifyWeekly",
+    value: boolean,
+    label: string,
+  ) => {
+    try {
+      await updateProfile({ [key]: value });
+      toast.success(`${label} ${value ? "enabled" : "disabled"}`);
+    } catch {
+      toast.error("Failed to save notification preference");
+    }
+  };
 
   const email = user?.email ?? profile?.email ?? "";
   const memberSince = user?.createdAt ? formatMemberSince(user.createdAt) : "Recently";
@@ -366,13 +382,13 @@ export default function SettingsPage() {
         <Card className="p-5" hover={false}>
           <div className="space-y-3">
             {[
-              { label: "Push Notifications", desc: "Learning reminders and alerts", on: notif, set: setNotif },
-              { label: "AI Daily Insights", desc: "Personalized career insights each morning", on: insights, set: setInsights },
-              { label: "Weekly Report", desc: "Progress summary every Monday", on: weekly, set: setWeekly },
+              { label: "Push Notifications", desc: "Learning reminders and alerts", on: notif, set: setNotif, key: "notifyPush" as const },
+              { label: "AI Daily Insights", desc: "Personalized career insights each morning", on: insights, set: setInsights, key: "notifyInsights" as const },
+              { label: "Weekly Report", desc: "Progress summary every Monday", on: weekly, set: setWeekly, key: "notifyWeekly" as const },
             ].map(item => (
               <div key={item.label} className="flex items-center justify-between gap-4 rounded-2xl border border-border px-4 py-3.5">
                 <div><p className="text-[13px] font-semibold" style={{ color: CARBON }}>{item.label}</p><p className="text-[12px] text-muted-foreground">{item.desc}</p></div>
-                <Toggle on={item.on} set={(v) => { item.set(v); toast.success(`${item.label} ${v ? "enabled" : "disabled"}`); }} />
+                <Toggle on={item.on} set={(v) => { item.set(v); void saveNotificationPref(item.key, v, item.label); }} />
               </div>
             ))}
           </div>

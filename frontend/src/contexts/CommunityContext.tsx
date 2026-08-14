@@ -23,6 +23,11 @@ interface CommunityContextType {
   likeThread: (apiId: string) => Promise<void>;
   loadThread: (apiId: string) => Promise<Record<string, unknown> | null>;
   addComment: (postId: string, body: string) => Promise<void>;
+  updateThread: (postId: string, data: { title?: string; body?: string }) => Promise<void>;
+  deleteThread: (postId: string) => Promise<void>;
+  updateComment: (commentId: string, body: string) => Promise<void>;
+  deleteComment: (commentId: string) => Promise<void>;
+  removeReaction: (postId: string) => Promise<void>;
 }
 
 const CommunityContext = createContext<CommunityContextType | null>(null);
@@ -87,8 +92,60 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
     }
   }, [refresh]);
 
+  const updateThread = useCallback(async (postId: string, data: { title?: string; body?: string }) => {
+    try {
+      await api.updateCommunityPost(postId, data);
+      toast.success('Post updated');
+      await refresh();
+    } catch {
+      toast.error('Failed to update post');
+    }
+  }, [refresh]);
+
+  const deleteThread = useCallback(async (postId: string) => {
+    try {
+      await api.deleteCommunityPost(postId);
+      toast.success('Post deleted');
+      await refresh();
+    } catch {
+      toast.error('Failed to delete post');
+    }
+  }, [refresh]);
+
+  const updateComment = useCallback(async (commentId: string, body: string) => {
+    try {
+      await api.updateCommunityComment(commentId, body);
+      toast.success('Comment updated');
+      await refresh();
+    } catch {
+      toast.error('Failed to update comment');
+    }
+  }, [refresh]);
+
+  const deleteComment = useCallback(async (commentId: string) => {
+    try {
+      await api.deleteCommunityComment(commentId);
+      toast.success('Comment deleted');
+      await refresh();
+    } catch {
+      toast.error('Failed to delete comment');
+    }
+  }, [refresh]);
+
+  const removeReaction = useCallback(async (postId: string) => {
+    try {
+      await api.removePostReaction(postId);
+      await refresh();
+    } catch {
+      toast.error('Failed to remove reaction');
+    }
+  }, [refresh]);
+
   return (
-    <CommunityContext.Provider value={{ threads, loading, refresh, createThread, likeThread, loadThread, addComment }}>
+    <CommunityContext.Provider value={{
+      threads, loading, refresh, createThread, likeThread, loadThread, addComment,
+      updateThread, deleteThread, updateComment, deleteComment, removeReaction,
+    }}>
       {children}
     </CommunityContext.Provider>
   );

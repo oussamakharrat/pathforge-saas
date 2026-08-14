@@ -70,12 +70,16 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     await api.markAllNotificationsRead().catch(() => undefined);
   }, []);
 
-  const dismissNotification = useCallback((id: string) => {
+  const dismissNotification = useCallback(async (id: string) => {
     setNotifications((prev) => prev.filter((n) => n.id !== id));
-    markAsRead(id);
-  }, [markAsRead]);
+    await api.deleteNotification(id).catch(() => undefined);
+  }, []);
 
-  const clearAll = useCallback(() => setNotifications([]), []);
+  const clearAll = useCallback(async () => {
+    const snapshot = notifications;
+    setNotifications([]);
+    await Promise.all(snapshot.map((n) => api.deleteNotification(n.id).catch(() => undefined)));
+  }, [notifications]);
 
   const unreadCount = useMemo(() => notifications.filter((n) => !n.read).length, [notifications]);
 

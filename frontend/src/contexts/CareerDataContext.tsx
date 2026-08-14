@@ -59,6 +59,7 @@ interface CareerDataContextType {
   updateSkill: (name: string, updates: Partial<Pick<Skill, 'level' | 'pct' | 'cat'>>) => void;
   deleteSkill: (name: string) => void;
   deleteLearningStep: (stepId: number) => void;
+  deleteLearningPlan: (goalLegacyId: number) => Promise<void>;
   addMilestone: (goalId: number, title: string) => void;
   addLearningItem: (goalLegacyId: number | null, title: string, tag: string) => void;
   toggleMilestone: (goalId: number, milestoneId: string, completed?: boolean) => void;
@@ -308,6 +309,25 @@ export function CareerDataProvider({ children }: { children: ReactNode }) {
       .catch(() => toast.error('Failed to remove learning step'));
   }, [learningSteps, refresh]);
 
+  const deleteLearningPlan = useCallback(async (goalLegacyId: number) => {
+    try {
+      const plans = await api.getLearningPlans();
+      const plan = plans.find((p) => {
+        const gid = p.goalId ? String(p.goalId) : '';
+        return gid && toApiId(goalLegacyId) === gid;
+      });
+      if (!plan) {
+        toast.error('No learning plan found for this goal');
+        return;
+      }
+      await api.deleteLearningPlan(String(plan.id));
+      toast.success('Learning plan deleted');
+      await refresh();
+    } catch {
+      toast.error('Failed to delete learning plan');
+    }
+  }, [refresh]);
+
   const addMilestone = useCallback((goalId: number, title: string) => {
     const goal = goals.find((g) => g.id === goalId);
     if (!goal?.apiId) return;
@@ -514,6 +534,7 @@ export function CareerDataProvider({ children }: { children: ReactNode }) {
         updateSkill,
         deleteSkill,
         deleteLearningStep,
+        deleteLearningPlan,
         addMilestone,
         addLearningItem,
         toggleMilestone,

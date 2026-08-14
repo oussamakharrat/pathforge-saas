@@ -53,4 +53,32 @@ export class NotificationsService {
 
     return { success: true };
   }
+
+  async remove(userId: string, id: string) {
+    const n = assertFound(
+      await this.prisma.notification.findUnique({ where: { id } }),
+      'Notification',
+    );
+    assertOwner(n.userId, userId);
+
+    await this.prisma.notification.delete({ where: { id } });
+
+    const unread = await this.prisma.notification.count({
+      where: { userId, read: false },
+    });
+    await this.prisma.progressDashboard.upsert({
+      where: { userId },
+      create: { userId, unreadNotifications: unread },
+      update: { unreadNotifications: unread, lastRefreshedAt: new Date() },
+    });
+
+    return { deleted: true };
+  }
+
+  async clearRead(userId: string) {
+    await this.prisma.notification.deleteMany({
+      where: { userId, read: true },
+    });
+    return { deleted: true };
+  }
 }

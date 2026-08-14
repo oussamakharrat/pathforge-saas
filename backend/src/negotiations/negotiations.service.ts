@@ -233,4 +233,11 @@ export class NegotiationsService {
     await this.dashboard.refresh(userId);
     return negotiation;
   }
+
+  async remove(userId: string, id: string) {
+    const neg = await this.findOne(userId, id);
+    await this.prisma.negotiation.delete({ where: { id: neg.id } });
+    await this.dashboard.refresh(userId);
+    return { deleted: true };
+  }
 }

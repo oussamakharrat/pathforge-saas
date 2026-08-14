@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from "react";
-import { useNavigate } from "@/lib/router";
+import { useState, useEffect } from "react";
+import { useNavigate, useSearchParams } from "@/lib/router";
 import { toast } from "sonner";
 import { User, Mail, Lock, Eye, EyeOff, ArrowRight, Globe, Github } from "lucide-react";
 import { FLAME, CARBON, DUST, ALABASTER } from "../lib/constants";
@@ -25,8 +25,38 @@ export default function AuthPage({ mode: initialMode }: { mode: "login" | "regis
   const [showForgot, setShowForgot] = useState(false);
   const [resetToken, setResetToken] = useState("");
   const [newPassword, setNewPassword] = useState("");
+  const [oauthProviders, setOauthProviders] = useState({ google: false, github: false });
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { login, register, updateProfile } = useAuth();
+
+  useEffect(() => {
+    const verifyToken = searchParams.get('verify');
+    const resetFromUrl = searchParams.get('reset');
+    const oauthError = searchParams.get('error');
+    if (resetFromUrl) {
+      setResetToken(resetFromUrl);
+      setShowForgot(true);
+    }
+    if (verifyToken) {
+      navigate(`/auth/verify?token=${encodeURIComponent(verifyToken)}`);
+      return;
+    }
+    if (oauthError === 'oauth_failed') {
+      toast.error('Social sign-in failed. Try again or use email.');
+      setSearchParams({});
+    }
+    if (oauthError === 'oauth_not_configured') {
+      toast.error('That sign-in provider is not configured yet.');
+      setSearchParams({});
+    }
+  }, [searchParams, setSearchParams, navigate]);
+
+  useEffect(() => {
+    void api.getOAuthProviders()
+      .then(setOauthProviders)
+      .catch(() => setOauthProviders({ google: false, github: false }));
+  }, []);
 
   const validate = () => {
     const e: Record<string, string> = {};
@@ -123,14 +153,26 @@ export default function AuthPage({ mode: initialMode }: { mode: "login" | "regis
           <h1 className="text-2xl font-black tracking-tight mb-1" style={{ color: CARBON }}>{mode === "login" ? "Welcome back" : "Create account"}</h1>
           <p className="text-[13px] text-muted-foreground mb-7">{mode === "login" ? "Sign in to your career dashboard." : "Start accelerating your career today."}</p>
 
+          {(oauthProviders.google || oauthProviders.github) && (
           <div className="space-y-2.5 mb-6">
-            {[{ icon: Globe, label: "Continue with Google" }, { icon: Github, label: "Continue with GitHub" }].map(b => {
-              const Icon = b.icon;
-              return <button key={b.label} onClick={() => { toast.info(`Redirecting to ${b.label.split(" ")[2]}...`); }} className="w-full h-10 rounded-xl border border-border bg-white text-[13px] font-bold hover:bg-secondary transition-colors flex items-center justify-center gap-2.5" style={{ color: CARBON }}><Icon className="w-4 h-4" /> {b.label}</button>;
-            })}
+            {oauthProviders.google && (
+              <button type="button" onClick={() => { window.location.href = api.getGoogleOAuthUrl(); }}
+                className="w-full h-10 rounded-xl border border-border bg-white text-[13px] font-bold hover:bg-secondary transition-colors flex items-center justify-center gap-2.5" style={{ color: CARBON }}>
+                <Globe className="w-4 h-4" /> Continue with Google
+              </button>
+            )}
+            {oauthProviders.github && (
+              <button type="button" onClick={() => { window.location.href = api.getGithubOAuthUrl(); }}
+                className="w-full h-10 rounded-xl border border-border bg-white text-[13px] font-bold hover:bg-secondary transition-colors flex items-center justify-center gap-2.5" style={{ color: CARBON }}>
+                <Github className="w-4 h-4" /> Continue with GitHub
+              </button>
+            )}
           </div>
+          )}
 
+          {(oauthProviders.google || oauthProviders.github) && (
           <div className="flex items-center gap-3 mb-5"><div className="flex-1 h-px bg-border" /><span className="text-[11px] font-semibold text-muted-foreground">or email</span><div className="flex-1 h-px bg-border" /></div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-3.5">
             {mode === "register" && <Field label="Full Name" placeholder="Jordan Lee" value={name} onChange={setName} Left={User} error={errors.name} />}

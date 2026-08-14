@@ -3,7 +3,7 @@
 import { useState, useMemo, useCallback } from "react";
 import { useNavigate } from "@/lib/router";
 import { toast } from "sonner";
-import { FileText, Upload, TrendingUp, Sparkles, Brain, CheckCircle2, AlertCircle, Plus, Pencil, Save } from "lucide-react";
+import { FileText, Upload, TrendingUp, Sparkles, Brain, CheckCircle2, AlertCircle, Plus, Pencil, Save, Trash2 } from "lucide-react";
 import { FLAME, CARBON, ALABASTER, DUST } from "../lib/constants";
 import { Card } from "../components/Card";
 import { Btn } from "../components/Btn";
@@ -28,7 +28,7 @@ const SECTION_TYPES = [
 export default function ResumePage() {
   const navigate = useNavigate();
   const { purchasedServices, skills } = useCareerData();
-  const { resumes, loading, createResume, updateResume, addSection, updateSection } = useResume();
+  const { resumes, loading, createResume, updateResume, deleteResume, addSection, updateSection, deleteSection } = useResume();
   const hasResumeReview = purchasedServices.includes("Resume Review");
   const hasFullRewrite = purchasedServices.includes("CV Full Rewrite");
   const [drag, setDrag] = useState(false);
@@ -190,12 +190,23 @@ export default function ResumePage() {
                     <div key={s.id} className="p-3 rounded-xl border border-border">
                       <div className="flex items-center justify-between mb-1">
                         <p className="text-[13px] font-bold" style={{ color: CARBON }}>{s.title}</p>
-                        <button
-                          onClick={() => setEditingSection({ id: s.id, title: s.title, content: s.content })}
-                          className="text-[11px] font-bold flex items-center gap-1 text-muted-foreground hover:text-foreground"
-                        >
-                          <Pencil className="w-3 h-3" /> Edit
-                        </button>
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => setEditingSection({ id: s.id, title: s.title, content: s.content })}
+                            className="text-[11px] font-bold flex items-center gap-1 text-muted-foreground hover:text-foreground"
+                          >
+                            <Pencil className="w-3 h-3" /> Edit
+                          </button>
+                          <button
+                            onClick={() => {
+                              if (!active) return;
+                              void deleteSection(active.id, s.id);
+                            }}
+                            className="w-7 h-7 rounded-lg flex items-center justify-center text-red-400 hover:text-red-600 hover:bg-red-50"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        </div>
                       </div>
                       <p className="text-[12px] text-muted-foreground line-clamp-3 whitespace-pre-wrap">{s.content || "(empty)"}</p>
                     </div>
@@ -230,6 +241,19 @@ export default function ResumePage() {
                     style={{ color: FLAME }}
                   >
                     {active?.id === r.id ? "Active" : "Open"}
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (r.id === active?.id && resumes.length > 1) {
+                        const next = resumes.find((x) => x.id !== r.id);
+                        if (next) setActiveResumeId(next.id);
+                      }
+                      void deleteResume(r.id);
+                    }}
+                    className="w-7 h-7 rounded-lg flex items-center justify-center text-red-400 hover:bg-red-50"
+                    title="Delete resume"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 </Card>
               ))}

@@ -67,4 +67,13 @@ export class ResumesController {
   ) {
     return this.service.updateSection(user.id, resumeId, sectionId, dto);
   }
+
+  @Delete(':resumeId/sections/:sectionId')
+  removeSection(
+    @CurrentUser() user: { id: string },
+    @Param('resumeId') resumeId: string,
+    @Param('sectionId') sectionId: string,
+  ) {
+    return this.service.removeSection(user.id, resumeId, sectionId);
+  }
 }

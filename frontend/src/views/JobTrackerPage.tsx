@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useSearchParams } from "@/lib/router";
 import { toast } from "sonner";
-import { Plus, Search, Sparkles, X, Mic, DollarSign, Pencil, Trash2, Briefcase } from "lucide-react";
+import { Plus, Search, Sparkles, X, Mic, DollarSign, Pencil, Trash2, Briefcase, Calendar, FileText } from "lucide-react";
 import { FLAME, CARBON, ALABASTER } from "../lib/constants";
 import { Card } from "../components/Card";
 import { Btn } from "../components/Btn";
@@ -13,6 +13,7 @@ import { useCareerData } from "../contexts/CareerDataContext";
 import { useJobs } from "../contexts/JobsContext";
 import { Modal } from "../components/Modal";
 import { EmptyState } from "../components/EmptyState";
+import { api } from "@/lib/api";
 import type { KanbanCard, KanbanCol } from "../data/types";
 
 export default function JobTrackerPage() {
@@ -32,6 +33,20 @@ export default function JobTrackerPage() {
   const [confirmDeleteCard, setConfirmDeleteCard] = useState<string | null>(null);
   const [editingNotes, setEditingNotes] = useState(false);
   const [editNotesText, setEditNotesText] = useState("");
+  const [appDetail, setAppDetail] = useState<Record<string, unknown> | null>(null);
+  const [detailTab, setDetailTab] = useState<"overview" | "interviews" | "offers">("overview");
+  const [interviewType, setInterviewType] = useState("behavioral");
+  const [interviewDate, setInterviewDate] = useState(new Date().toISOString().split("T")[0]);
+  const [offerAmount, setOfferAmount] = useState("");
+
+  useEffect(() => {
+    if (!selected) {
+      setAppDetail(null);
+      setDetailTab("overview");
+      return;
+    }
+    void api.getApplication(selected.id).then(setAppDetail).catch(() => setAppDetail(null));
+  }, [selected]);
 
   // Dynamic match scores computed from current skills
   const skillPcts = useMemo(() => skills.map(s => ({ name: s.name, pct: s.pct })), [skills]);
@@ -199,14 +214,117 @@ export default function JobTrackerPage() {
                   <p className="text-[13px]" style={{ color: CARBON }}>{selected.notes}</p>
                 )}
               </div>
+              <div className="flex gap-1 mb-3">
+                {(["overview", "interviews", "offers"] as const).map((tab) => (
+                  <button key={tab} onClick={() => setDetailTab(tab)}
+                    className="px-3 py-1.5 rounded-lg text-[11px] font-bold capitalize"
+                    style={{ backgroundColor: detailTab === tab ? FLAME : ALABASTER, color: detailTab === tab ? "white" : "#6B6F6B" }}>
+                    {tab}
+                  </button>
+                ))}
+              </div>
+
+              {detailTab === "interviews" && (
+                <div className="space-y-3 mb-3">
+                  {((appDetail?.interviews as Record<string, unknown>[]) ?? []).map((iv) => (
+                    <div key={String(iv.id)} className="p-3 rounded-xl border border-border text-[12px]">
+                      <p className="font-bold" style={{ color: CARBON }}>{String(iv.type)} · {String(iv.date).split("T")[0]}</p>
+                      <p className="text-muted-foreground">{String(iv.status ?? "scheduled")}{iv.score != null ? ` · Score ${iv.score}` : ""}</p>
+                    </div>
+                  ))}
+                  <div className="p-3 rounded-xl" style={{ backgroundColor: ALABASTER }}>
+                    <p className="text-[11px] font-black mb-2" style={{ color: CARBON }}>Schedule Interview</p>
+                    <div className="grid grid-cols-2 gap-2 mb-2">
+                      <select value={interviewType} onChange={(e) => setInterviewType(e.target.value)} className="h-9 px-2 rounded-lg border border-border text-[12px]">
+                        <option value="behavioral">Behavioral</option>
+                        <option value="technical">Technical</option>
+                        <option value="system_design">System Design</option>
+                      </select>
+                      <input type="date" value={interviewDate} onChange={(e) => setInterviewDate(e.target.value)} className="h-9 px-2 rounded-lg border border-border text-[12px]" />
+                    </div>
+                    <Btn size="sm" full onClick={async () => {
+                      try {
+                        await api.createInterview(selected.id, {
+                          type: interviewType,
+                          date: interviewDate,
+                          company: selected.company,
+                          role: selected.role,
+                        });
+                        const detail = await api.getApplication(selected.id);
+                        setAppDetail(detail);
+                        if (cardColId !== "interview" && cardColId !== "final" && cardColId !== "offer") {
+                          await moveCard(selected.id, cardColId, "interview");
+                        }
+                        trackInterview();
+                        toast.success("Interview scheduled");
+                      } catch {
+                        toast.error("Failed to schedule interview");
+                      }
+                    }}><Calendar className="w-3.5 h-3.5" /> Schedule</Btn>
+                  </div>
+                </div>
+              )}
+
+              {detailTab === "offers" && (
+                <div className="space-y-3 mb-3">
+                  {((appDetail?.offers as Record<string, unknown>[]) ?? []).map((of) => {
+                    const salary = of.baseSalary as Record<string, unknown> | undefined;
+                    return (
+                      <div key={String(of.id)} className="p-3 rounded-xl border border-border text-[12px]">
+                        <p className="font-bold" style={{ color: CARBON }}>{String(of.company)} — {String(of.role)}</p>
+                        <p className="text-muted-foreground">${Number(salary?.amount ?? 0).toLocaleString()} {String(salary?.currency ?? "USD")}</p>
+                      </div>
+                    );
+                  })}
+                  <div className="p-3 rounded-xl" style={{ backgroundColor: ALABASTER }}>
+                    <p className="text-[11px] font-black mb-2" style={{ color: CARBON }}>Record Offer</p>
+                    <input type="number" value={offerAmount} onChange={(e) => setOfferAmount(e.target.value)} placeholder="Base salary (USD)"
+                      className="w-full h-9 px-3 rounded-lg border border-border text-[12px] mb-2" />
+                    <Btn size="sm" full onClick={async () => {
+                      const amount = parseInt(offerAmount) || 0;
+                      if (amount < 1000) { toast.error("Enter a valid salary amount"); return; }
+                      try {
+                        await api.addOffer(selected.id, {
+                          company: selected.company,
+                          role: selected.role,
+                          baseSalary: { amount, currency: "USD" },
+                        });
+                        const detail = await api.getApplication(selected.id);
+                        setAppDetail(detail);
+                        if (cardColId !== "offer") {
+                          await moveCard(selected.id, cardColId, "offer");
+                        }
+                        trackOffer();
+                        setOfferAmount("");
+                        toast.success("Offer recorded");
+                      } catch {
+                        toast.error("Failed to record offer");
+                      }
+                    }}><FileText className="w-3.5 h-3.5" /> Save Offer</Btn>
+                  </div>
+                </div>
+              )}
+
+              {detailTab === "overview" && (
+              <>
               <div className="p-3 rounded-xl flex items-start gap-2" style={{ backgroundColor: "rgba(241,80,37,0.04)", border: `1px solid rgba(241,80,37,0.2)` }}>
                 <Sparkles className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: FLAME }} />
-                <div><p className="text-[11px] font-black mb-1" style={{ color: CARBON }}>AI Tip</p><p className="text-[12px] text-muted-foreground leading-relaxed">{dynMatchSelected >= 85 ? "Strong match! Apply with confidence and emphasize TypeScript expertise." : "Close match. Highlight system design and mention AWS training."}</p></div>
+                <div><p className="text-[11px] font-black mb-1" style={{ color: CARBON }}>Tip</p><p className="text-[12px] text-muted-foreground leading-relaxed">{dynMatchSelected >= 85 ? "Strong match! Apply with confidence and emphasize your top skills." : "Close match. Highlight system design and relevant project experience."}</p></div>
               </div>
+              </>
+              )}
+
               <div className="flex flex-col gap-2">
                 <div className="flex gap-2">
-                  <Btn full onClick={() => { trackApplication(); toast.success(`Application submitted to ${selected.company}!`); setSelected(null); }}>Apply Now</Btn>
-                  <Btn variant="outline" onClick={() => { navigate(`/app/interview?company=${selected.company}&role=${selected.role}`); setSelected(null); }}><Mic className="w-3.5 h-3.5" /> Prep Interview</Btn>
+                  <Btn full disabled={cardColId !== "saved"} onClick={() => {
+                    if (cardColId !== "saved") return;
+                    void moveCard(selected.id, "saved", "applied").then(() => {
+                      trackApplication();
+                      toast.success(`Application submitted to ${selected.company}!`);
+                      setSelected(null);
+                    });
+                  }}>{cardColId === "saved" ? "Apply Now" : "Applied"}</Btn>
+                  <Btn variant="outline" onClick={() => { navigate(`/app/interview?company=${selected.company}&role=${selected.role}`); setSelected(null); }}><Mic className="w-3.5 h-3.5" /> Prep</Btn>
                 </div>
                 {cardColId === "offer" && (
                   <Btn full className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => { navigate(`/app/negotiate?company=${selected.company}&role=${selected.role}&salary=${selected.salary}`); setSelected(null); }}><DollarSign className="w-4 h-4" /> Negotiate Offer</Btn>

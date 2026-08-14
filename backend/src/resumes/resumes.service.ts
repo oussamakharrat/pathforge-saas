@@ -119,6 +119,20 @@ export class ResumesService {
     });
   }
 
+  async removeSection(userId: string, resumeId: string, sectionId: string) {
+    await this.findOne(userId, resumeId);
+    const section = assertFound(
+      await this.prisma.resumeSection.findUnique({ where: { id: sectionId } }),
+      'Resume section',
+    );
+    if (section.resumeId !== resumeId) {
+      throw new BadRequestException('Section does not belong to this resume');
+    }
+    await this.prisma.resumeSection.delete({ where: { id: sectionId } });
+    await this.dashboard.refreshCareerMetrics(userId);
+    return { deleted: true };
+  }
+
   async remove(userId: string, id: string) {
     await this.findOne(userId, id);
     await this.prisma.resume.delete({ where: { id } });

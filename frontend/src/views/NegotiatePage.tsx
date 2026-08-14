@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { useSearchParams } from "@/lib/router";
 import { toast } from "sonner";
-import { ChevronLeft, Sparkles, Check, Copy, Shield, DollarSign, Briefcase, Building, Globe, History, Clock } from "lucide-react";
+import { ChevronLeft, Sparkles, Check, Copy, Shield, DollarSign, Briefcase, Building, Globe, History, Clock, Trash2 } from "lucide-react";
 import { FLAME, CARBON, ALABASTER } from "../lib/constants";
 import { cn } from "../lib/utils";
 import { Card } from "../components/Card";
@@ -308,35 +308,60 @@ export default function NegotiatePage() {
               const targetAmt = Number(targetSalary?.amount ?? 0);
               const date = String(neg.updatedAt ?? neg.createdAt ?? "").split("T")[0];
               return (
-                <button
-                  key={String(neg.id)}
-                  onClick={() => {
-                    setCompany(companyName);
-                    setRole(roleName);
-                    if (offeredAmt) setOfferSalary(String(offeredAmt));
-                    setNegotiationId(String(neg.id));
-                    setScreen("analysis");
-                  }}
-                  className="w-full flex items-center gap-3 p-3 rounded-xl border border-border hover:border-orange-200 text-left transition-all"
-                >
-                  <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: ALABASTER }}>
-                    <DollarSign className="w-4 h-4" style={{ color: FLAME }} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[13px] font-bold truncate" style={{ color: CARBON }}>{roleName} at {companyName}</p>
-                    <p className="text-[11px] text-muted-foreground flex items-center gap-1">
-                      <Clock className="w-3 h-3" /> {date} · {String(neg.status ?? "draft")}
-                    </p>
-                  </div>
-                  <div className="text-right flex-shrink-0">
-                    <p className="text-[12px] font-black" style={{ color: CARBON }}>
-                      {offeredAmt ? `$${offeredAmt.toLocaleString()}` : "—"}
-                    </p>
-                    {targetAmt > offeredAmt && (
-                      <p className="text-[10px] text-emerald-600">→ ${targetAmt.toLocaleString()}</p>
-                    )}
-                  </div>
-                </button>
+                <div key={String(neg.id)} className="flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      setCompany(companyName);
+                      setRole(roleName);
+                      if (offeredAmt) setOfferSalary(String(offeredAmt));
+                      setNegotiationId(String(neg.id));
+                      setScreen("analysis");
+                    }}
+                    className="flex-1 flex items-center gap-3 p-3 rounded-xl border border-border hover:border-orange-200 text-left transition-all"
+                  >
+                    <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: ALABASTER }}>
+                      <DollarSign className="w-4 h-4" style={{ color: FLAME }} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[13px] font-bold truncate" style={{ color: CARBON }}>{roleName} at {companyName}</p>
+                      <p className="text-[11px] text-muted-foreground flex items-center gap-1">
+                        <Clock className="w-3 h-3" /> {date} · {String(neg.status ?? "draft")}
+                      </p>
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <p className="text-[12px] font-black" style={{ color: CARBON }}>
+                        {offeredAmt ? `$${offeredAmt.toLocaleString()}` : "—"}
+                      </p>
+                      {targetAmt > offeredAmt && (
+                        <p className="text-[10px] text-emerald-600">→ ${targetAmt.toLocaleString()}</p>
+                      )}
+                    </div>
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toast.error("Delete this negotiation?", {
+                        action: {
+                          label: "Delete",
+                          onClick: () => {
+                            void api.deleteNegotiation(String(neg.id)).then(() => {
+                              setHistory((prev) => prev.filter((n) => String(n.id) !== String(neg.id)));
+                              if (negotiationId === String(neg.id)) {
+                                setNegotiationId(null);
+                                setScreen("input");
+                              }
+                              toast.success("Negotiation deleted");
+                            }).catch(() => toast.error("Failed to delete negotiation"));
+                          },
+                        },
+                      });
+                    }}
+                    className="w-9 h-9 rounded-xl flex items-center justify-center text-red-400 hover:bg-red-50 flex-shrink-0"
+                    title="Delete negotiation"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
               );
             })}
           </div>

@@ -21,6 +21,9 @@ export class UpdateProfileDto {
   @IsOptional() @IsBoolean() onboardingComplete?: boolean;
   @IsOptional() @IsString() displayName?: string;
   @IsOptional() @IsArray() purchasedServices?: string[];
+  @IsOptional() @IsBoolean() notifyPush?: boolean;
+  @IsOptional() @IsBoolean() notifyInsights?: boolean;
+  @IsOptional() @IsBoolean() notifyWeekly?: boolean;
 }
 
 export class PurchaseServiceDto {
