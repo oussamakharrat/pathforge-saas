@@ -68,7 +68,7 @@ export function TechTagsInput({
   return (
     <div>
       <div
-        className="min-h-11 rounded-xl border border-border px-3 py-2 focus-within:ring-2 focus-within:ring-ring"
+        className="tr-input min-h-11 rounded-xl border border-border px-3 py-2 focus-within:border-primary/60 focus-within:ring-2 focus-within:ring-ring"
         style={{ backgroundColor: ALABASTER }}
         onClick={() => inputRef.current?.focus()}
       >
@@ -104,20 +104,20 @@ export function TechTagsInput({
             onBlur={() => setTimeout(() => setOpen(false), 120)}
             onKeyDown={handleKeyDown}
             placeholder={value.length === 0 ? placeholder : 'Add another…'}
-            className="min-w-[120px] flex-1 bg-transparent py-1 text-[13px] text-foreground placeholder:text-muted-foreground focus:outline-none"
+            className="tr-input min-w-[120px] flex-1 bg-transparent py-1 text-[13px] text-foreground placeholder:text-muted-foreground focus:outline-none"
           />
         </div>
       </div>
 
       {open && filteredSuggestions.length > 0 && (
-        <ul className="mt-1.5 overflow-hidden rounded-xl border border-border bg-white shadow-sm">
+        <ul className="anim-dropdown mt-1.5 overflow-hidden rounded-xl border border-border bg-white shadow-sm">
           {filteredSuggestions.map((suggestion) => (
             <li key={suggestion}>
               <button
                 type="button"
                 onMouseDown={(event) => event.preventDefault()}
                 onClick={() => addTag(suggestion)}
-                className="flex w-full items-center gap-2 px-3 py-2 text-left text-[12px] hover:bg-secondary/70"
+                className="tr-interactive flex w-full items-center gap-2 px-3 py-2 text-left text-[12px] hover:bg-secondary/70"
               >
                 <Plus className="h-3.5 w-3.5" style={{ color: FLAME }} />
                 <span className={cn('font-semibold')} style={{ color: CARBON }}>{suggestion}</span>

@@ -7,6 +7,7 @@ import { FLAME, CARBON, ALABASTER } from "../lib/constants";
 import { Card } from "../components/Card";
 import { Btn } from "../components/Btn";
 import { BrandLogo } from "../components/BrandLogo";
+import { PublicShell } from "@/components/PublicShell";
 
 interface HelpArticle {
   id: string;
@@ -53,7 +54,7 @@ export default function HelpPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-white">
+    <PublicShell className="bg-white">
       {/* Header */}
       <div className="sticky top-0 z-30 border-b border-border bg-white/90 backdrop-blur-md">
         <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
@@ -166,6 +167,6 @@ export default function HelpPage() {
           <Btn onClick={() => { window.location.href = "mailto:hello@careergrowth.dev"; }}><MessageSquare className="w-4 h-4" /> Contact Support</Btn>
         </Card>
       </div>
-    </div>
+    </PublicShell>
   );
 }

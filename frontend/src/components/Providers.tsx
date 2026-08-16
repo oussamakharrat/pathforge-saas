@@ -26,7 +26,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
                     <CommunityProvider>
                       <UpgradeProvider>
                         <Suspense fallback={null}>{children}</Suspense>
-                        <Toaster richColors closeButton position="top-center" />
+                        <Toaster richColors closeButton position="top-center" expand visibleToasts={4} />
                       </UpgradeProvider>
                     </CommunityProvider>
                   </CoachProvider>

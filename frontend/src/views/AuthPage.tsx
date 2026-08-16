@@ -12,6 +12,7 @@ import { useAuth } from "../contexts/AuthContext";
 import OnboardingWizard from "../components/OnboardingWizard";
 import { api } from "@/lib/api";
 import { Modal } from "../components/Modal";
+import { AnimatedView } from "@/components/AnimatedView";
 
 export default function AuthPage({ mode: initialMode }: { mode: "login" | "register" }) {
   const [mode, setMode] = useState<"login" | "register">(initialMode);
@@ -103,7 +104,7 @@ export default function AuthPage({ mode: initialMode }: { mode: "login" | "regis
   }
 
   return (
-    <div className="min-h-screen flex bg-white">
+    <AnimatedView className="flex min-h-screen bg-white">
       {/* Left panel — trust & outcomes */}
       <div className="hidden md:flex flex-col justify-between w-1/2 p-8 md:p-10 lg:p-14 relative overflow-hidden" style={{ backgroundColor: CARBON }}>
         <div className="absolute inset-0 opacity-10" style={{ backgroundImage: `radial-gradient(circle at 30% 70%, ${FLAME} 0%, transparent 60%)` }} />
@@ -249,6 +250,6 @@ export default function AuthPage({ mode: initialMode }: { mode: "login" | "regis
           )}
         </div>
       </Modal>
-    </div>
+    </AnimatedView>
   );
 }

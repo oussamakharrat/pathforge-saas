@@ -1,6 +1,6 @@
-import { CARBON } from "../lib/constants";
-import { Card } from "./Card";
-import { Btn } from "./Btn";
+import { CARBON } from '../lib/constants';
+import { Card } from './Card';
+import { Btn } from './Btn';
 
 interface EmptyStateProps {
   icon?: React.ReactNode;
@@ -10,24 +10,26 @@ interface EmptyStateProps {
   className?: string;
 }
 
-export function EmptyState({ icon, title, description, action, className = "" }: EmptyStateProps) {
+export function EmptyState({ icon, title, description, action, className = '' }: EmptyStateProps) {
   return (
-    <Card className={`p-8 md:p-10 text-center ${className}`} hover={false}>
+    <Card className={`anim-pop p-8 text-center md:p-10 ${className}`} hover={false}>
       {icon && (
-        <div className="mb-4 flex justify-center [&>svg]:opacity-30">
+        <div className="anim-fade anim-delay-1 mb-4 flex justify-center [&>svg]:opacity-30">
           {icon}
         </div>
       )}
-      <h3 className="text-[15px] font-black mb-1.5" style={{ color: CARBON }}>
+      <h3 className="anim-fade anim-delay-2 mb-1.5 text-[15px] font-black" style={{ color: CARBON }}>
         {title}
       </h3>
-      <p className="text-[13px] text-muted-foreground mb-5 max-w-xs mx-auto leading-relaxed">
+      <p className="anim-fade anim-delay-3 mx-auto mb-5 max-w-xs text-[13px] leading-relaxed text-muted-foreground">
         {description}
       </p>
       {action && (
-        <Btn size="sm" onClick={action.onClick}>
-          {action.label}
-        </Btn>
+        <div className="anim-fade anim-delay-4">
+          <Btn size="sm" onClick={action.onClick}>
+            {action.label}
+          </Btn>
+        </div>
       )}
     </Card>
   );

@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import nodemailer from 'nodemailer';
 import type { Transporter } from 'nodemailer';
 
@@ -6,16 +6,48 @@ export interface EmailDeliveryResult {
   delivered: boolean;
   error?: string;
   provider?: 'smtp' | 'resend';
+  messageId?: string;
 }
 
 const RESEND_SANDBOX_FROM = 'PathForge <onboarding@resend.dev>';
 
 @Injectable()
-export class EmailService {
+export class EmailService implements OnModuleInit {
   private readonly logger = new Logger(EmailService.name);
   private readonly appUrl =
     process.env.APP_URL || process.env.FRONTEND_URL || 'http://localhost:3000';
   private smtpTransporter: Transporter | null | undefined;
+
+  onModuleInit() {
+    if (this.getAppUrl().includes('localhost')) {
+      this.logger.warn(
+        'Email: FRONTEND_URL uses localhost — links in emails often land in spam. Use a public URL in production.',
+      );
+    }
+    if (this.isSmtpConfigured()) {
+      void this.verifySmtpConnection();
+      return;
+    }
+    if (this.isResendConfigured()) {
+      this.logger.log('Email: Resend API configured (SMTP not set)');
+      return;
+    }
+    this.logger.warn('Email: no SMTP or Resend configured — emails will fail');
+  }
+
+  private async verifySmtpConnection() {
+    const transporter = this.getSmtpTransporter();
+    if (!transporter) return;
+    try {
+      await transporter.verify();
+      this.logger.log(
+        `Email: SMTP ready (${process.env.SMTP_HOST}, user: ${process.env.SMTP_USER})`,
+      );
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      this.logger.error(`Email: SMTP connection failed — ${msg}`);
+    }
+  }
 
   getAppUrl(): string {
     return this.appUrl.replace(/\/$/, '');
@@ -29,6 +61,11 @@ export class EmailService {
     return `${this.getAppUrl()}/auth/verify?token=${encodeURIComponent(token)}`;
   }
 
+  private replyToAddress(): string | undefined {
+    const replyTo = process.env.EMAIL_REPLY_TO?.trim() || process.env.SMTP_USER?.trim();
+    return replyTo || undefined;
+  }
+
   formatFromAddress(): string {
     const rawFrom =
       process.env.EMAIL_FROM ||
@@ -37,11 +74,16 @@ export class EmailService {
     return rawFrom.includes('<') ? rawFrom : `PathForge <${rawFrom}>`;
   }
 
+  /** Gmail app passwords are 16 chars; strip spaces if pasted with separators. */
+  private normalizeSmtpPass(value: string | undefined): string {
+    return (value ?? '').trim().replace(/\s+/g, '');
+  }
+
   isSmtpConfigured(): boolean {
     return Boolean(
       process.env.SMTP_HOST?.trim() &&
         process.env.SMTP_USER?.trim() &&
-        process.env.SMTP_PASS?.trim(),
+        this.normalizeSmtpPass(process.env.SMTP_PASS),
     );
   }
 
@@ -63,13 +105,15 @@ export class EmailService {
       return null;
     }
 
+    const port = Number(process.env.SMTP_PORT ?? 587);
     this.smtpTransporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST!.trim(),
-      port: Number(process.env.SMTP_PORT ?? 587),
-      secure: process.env.SMTP_SECURE === 'true',
+      port,
+      secure: process.env.SMTP_SECURE === 'true' || port === 465,
+      requireTLS: port === 587,
       auth: {
         user: process.env.SMTP_USER!.trim(),
-        pass: process.env.SMTP_PASS!.trim(),
+        pass: this.normalizeSmtpPass(process.env.SMTP_PASS),
       },
     });
 
@@ -78,6 +122,22 @@ export class EmailService {
 
   private usesResendSandbox(from: string): boolean {
     return from.includes('@resend.dev');
+  }
+
+  private buildHtmlEmail(title: string, body: string, actionUrl: string, actionLabel: string): string {
+    return `<!DOCTYPE html>
+<html>
+<body style="font-family:Inter,Arial,sans-serif;background:#f6f6f6;padding:24px;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;margin:0 auto;background:#fff;border-radius:12px;padding:32px;">
+    <tr><td>
+      <h1 style="color:#111;font-size:20px;margin:0 0 12px;">${title}</h1>
+      <p style="color:#555;font-size:14px;line-height:1.6;margin:0 0 24px;">${body}</p>
+      <a href="${actionUrl}" style="display:inline-block;background:#F15025;color:#fff;text-decoration:none;font-weight:700;padding:12px 24px;border-radius:8px;font-size:14px;">${actionLabel}</a>
+      <p style="color:#888;font-size:12px;margin:24px 0 0;word-break:break-all;">Or copy this link:<br><a href="${actionUrl}">${actionUrl}</a></p>
+    </td></tr>
+  </table>
+</body>
+</html>`;
   }
 
   private async sendViaSmtp(
@@ -92,15 +152,21 @@ export class EmailService {
     }
 
     try {
-      await transporter.sendMail({
+      const info = await transporter.sendMail({
         from: this.formatFromAddress(),
         to,
+        replyTo: this.replyToAddress(),
         subject,
         text,
         html: html ?? text.replace(/\n/g, '<br/>'),
+        headers: {
+          'X-Entity-Ref-ID': `pathforge-${Date.now()}`,
+        },
       });
-      this.logger.log(`Email sent via SMTP to ${to}: ${subject}`);
-      return { delivered: true, provider: 'smtp' };
+      this.logger.log(
+        `Email sent via SMTP to ${to}: ${subject} (id: ${info.messageId ?? 'n/a'})`,
+      );
+      return { delivered: true, provider: 'smtp', messageId: info.messageId };
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : String(err);
       this.logger.warn(`SMTP failed for ${to}: ${errorMessage}`);
@@ -165,8 +231,11 @@ export class EmailService {
       });
 
       if (res.ok) {
-        this.logger.log(`Email sent via Resend to ${to}: ${subject} (from: ${from})`);
-        return { delivered: true };
+        const data = (await res.json()) as { id?: string };
+        this.logger.log(
+          `Email sent via Resend to ${to}: ${subject} (from: ${from}, id: ${data.id ?? 'n/a'})`,
+        );
+        return { delivered: true, messageId: data.id };
       }
 
       const body = await res.text();
@@ -211,7 +280,7 @@ export class EmailService {
       if (!this.isResendConfigured()) {
         return smtpResult;
       }
-      this.logger.warn(`SMTP failed, trying Resend for ${to}`);
+      this.logger.warn(`SMTP failed, trying Resend for ${to}: ${smtpResult.error}`);
     }
 
     if (this.isResendConfigured()) {
@@ -227,7 +296,13 @@ export class EmailService {
   ): Promise<EmailDeliveryResult> {
     const link = this.buildResetLink(token);
     const text = `Reset your PathForge password:\n\n${link}\n\nThis link expires in 1 hour.`;
-    return this.sendMail(to, 'Reset your PathForge password', text);
+    const html = this.buildHtmlEmail(
+      'Reset your password',
+      'Click the button below to choose a new password. This link expires in 1 hour.',
+      link,
+      'Reset password',
+    );
+    return this.sendMail(to, 'Reset your PathForge password', text, html);
   }
 
   async sendVerificationEmail(
@@ -236,6 +311,12 @@ export class EmailService {
   ): Promise<EmailDeliveryResult> {
     const link = this.buildVerifyLink(token);
     const text = `Verify your PathForge email:\n\n${link}\n\nThis link expires in 24 hours.`;
-    return this.sendMail(to, 'Verify your PathForge email', text);
+    const html = this.buildHtmlEmail(
+      'Verify your email',
+      'Thanks for joining PathForge. Confirm your email address to secure your account.',
+      link,
+      'Verify email',
+    );
+    return this.sendMail(to, 'Verify your PathForge email', text, html);
   }
 }

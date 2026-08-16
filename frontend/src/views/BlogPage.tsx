@@ -8,6 +8,7 @@ import { Card } from "../components/Card";
 import { Btn } from "../components/Btn";
 import { Chip } from "../components/Chip";
 import { BrandLogo } from "../components/BrandLogo";
+import { PublicShell } from "@/components/PublicShell";
 
 interface BlogPost {
   id: number;
@@ -73,7 +74,7 @@ export default function BlogPage() {
   const rest = filtered.filter(p => !p.featured);
 
   return (
-    <div className="min-h-screen bg-white">
+    <PublicShell className="bg-white">
       {/* Header */}
       <div className="sticky top-0 z-30 border-b border-border bg-white/90 backdrop-blur-md">
         <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
@@ -188,6 +189,6 @@ export default function BlogPage() {
           </div>
         </Card>
       </div>
-    </div>
+    </PublicShell>
   );
 }

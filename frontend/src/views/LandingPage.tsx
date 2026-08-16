@@ -8,6 +8,7 @@ import {
   ChevronDown, Menu, X, Quote
 } from "lucide-react";
 import { cn } from "../lib/utils";
+import { AnimatedView } from '@/components/AnimatedView';
 import { FLAME, CARBON, ALABASTER, DUST } from "../lib/constants";
 import { Btn } from "../components/Btn";
 import { Card } from "../components/Card";
@@ -118,7 +119,7 @@ export default function LandingPage() {
   };
 
   return (
-    <div className="bg-white">
+    <AnimatedView className="bg-white">
       <LandingNav onGetStarted={handleGetStarted} />
 
       {/* Hero */}
@@ -301,6 +302,6 @@ export default function LandingPage() {
           </div>
         </div>
       </footer>
-    </div>
+    </AnimatedView>
   );
 }

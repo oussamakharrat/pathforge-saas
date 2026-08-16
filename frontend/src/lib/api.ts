@@ -110,19 +110,22 @@ export const api = {
   },
 
   verifyEmail(token: string) {
-    return request<{ message: string }>('/auth/verify-email', {
-      method: 'POST',
-      body: JSON.stringify({ token }),
-    });
+    return request<{ message: string; alreadyVerified?: boolean; emailVerified?: boolean }>(
+      '/auth/verify-email',
+      {
+        method: 'POST',
+        body: JSON.stringify({ token }),
+      },
+    );
   },
 
   resendVerificationEmail() {
     return request<{
       message: string;
       delivered?: boolean;
-      verificationToken?: string;
-      verifyLink?: string;
-      deliveryError?: string;
+      sentTo?: string;
+      provider?: string;
+      alreadyVerified?: boolean;
     }>('/auth/resend-verification', { method: 'POST' });
   },
 

@@ -6,6 +6,7 @@ import { X, Sparkles, CheckCircle2, ArrowRight, Lock } from "lucide-react";
 import { FLAME, CARBON } from "../lib/constants";
 import { Card } from "./Card";
 import { Btn } from "./Btn";
+import { Modal } from "./Modal";
 import { PLAN_META, canAccessPage, type Plan } from "../data/types";
 import { UpgradeContext } from "../contexts/UpgradeContext";
 import { useAuth } from "../contexts/AuthContext";
@@ -92,9 +93,8 @@ function UpgradePromptModal({ page, onClose }: { page: { id: string; label: stri
   const planMeta = PLAN_META[meta.plan];
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-      <Card className="relative w-full max-w-lg p-0 shadow-2xl z-10 overflow-hidden" hover={false}>
+    <Modal open onClose={onClose} maxWidth="lg" bare>
+      <Card className="relative w-full overflow-hidden p-0 shadow-2xl" hover={false}>
         {/* Accent header */}
         <div className="px-6 pt-6 pb-4" style={{ backgroundColor: "rgba(241,80,37,0.04)" }}>
           <div className="flex items-start justify-between">
@@ -109,7 +109,7 @@ function UpgradePromptModal({ page, onClose }: { page: { id: string; label: stri
                 <p className="text-[13px] text-muted-foreground">{meta.pitch}</p>
               </div>
             </div>
-            <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors p-1 rounded-lg hover:bg-white/60">
+            <button type="button" onClick={onClose} className="tr-interactive rounded-lg p-1 text-muted-foreground hover:bg-white/60 hover:text-foreground">
               <X className="w-5 h-5" />
             </button>
           </div>
@@ -143,6 +143,6 @@ function UpgradePromptModal({ page, onClose }: { page: { id: string; label: stri
           </Btn>
         </div>
       </Card>
-    </div>
+    </Modal>
   );
 }

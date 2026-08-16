@@ -42,7 +42,7 @@ interface AuthContextType {
   canAccess: (page: string) => boolean;
   planLabel: string;
   lockedPages: string[];
-  emailVerified: boolean;
+  emailVerified: boolean | null;
   resendVerification: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 }
@@ -100,7 +100,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [plan, setPlanState] = useState<Plan>('free');
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [emailVerified, setEmailVerified] = useState(true);
+  const [emailVerified, setEmailVerified] = useState<boolean | null>(null);
 
   const applyProfileResponse = useCallback((p: Awaited<ReturnType<typeof api.getProfile>>) => {
     setUser({
@@ -128,6 +128,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.removeItem('token');
       setUser(null);
       setProfile(null);
+      setEmailVerified(null);
     }
   }, [applyProfileResponse]);
 
@@ -180,21 +181,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
     setPlanState('free');
     setProfile(null);
-    setEmailVerified(true);
+    setEmailVerified(null);
   }, []);
 
   const resendVerification = useCallback(async () => {
     try {
-      await api.resendVerificationEmail();
-      toast.success('Verification email sent! Check your inbox.');
+      const res = await api.resendVerificationEmail();
+      if (res.alreadyVerified) {
+        setEmailVerified(true);
+        await hydrate();
+        toast.success('Your email is already verified.');
+        return;
+      }
+      toast.success(res.message, {
+        description: `Check the inbox and spam folder for ${res.sentTo ?? 'your email'}.`,
+        duration: 10000,
+      });
     } catch (err) {
       toast.error(
         err instanceof Error ? err.message : 'Failed to send verification email',
-        { duration: 8000 },
+        { duration: 10000 },
       );
       throw err;
     }
-  }, []);
+  }, [hydrate]);
 
   const setPlan = useCallback(async (p: Plan) => {
     await api.updateSubscription({ plan: p });

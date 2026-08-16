@@ -360,7 +360,7 @@ export class AuthService {
       throw new BadRequestException('Verification token is required');
     }
 
-    const user = await this.prisma.user.findFirst({
+    let user = await this.prisma.user.findFirst({
       where: {
         emailVerificationToken: normalized,
         emailVerificationExpires: { gt: new Date() },
@@ -368,13 +368,27 @@ export class AuthService {
     });
 
     if (!user) {
+      const staleTokenUser = await this.prisma.user.findFirst({
+        where: { emailVerificationToken: normalized },
+      });
+      if (staleTokenUser?.emailVerified) {
+        return {
+          message: 'Email is already verified',
+          alreadyVerified: true,
+          emailVerified: true,
+        };
+      }
       throw new BadRequestException(
         'Invalid or expired verification token. Request a new link from Settings or use Resend email.',
       );
     }
 
     if (user.emailVerified) {
-      return { message: 'Email is already verified', alreadyVerified: true };
+      return {
+        message: 'Email is already verified',
+        alreadyVerified: true,
+        emailVerified: true,
+      };
     }
 
     await this.prisma.user.update({
@@ -386,7 +400,7 @@ export class AuthService {
       },
     });
 
-    return { message: 'Email verified successfully' };
+    return { message: 'Email verified successfully', emailVerified: true };
   }
 
   async resendVerification(userId: string) {
@@ -423,8 +437,10 @@ export class AuthService {
     this.assertEmailDelivered(delivery, 'verification email');
 
     return {
-      message: 'Verification email sent. Check your inbox.',
+      message: `Verification email sent to ${user.email}`,
       delivered: true,
+      sentTo: user.email,
+      provider: delivery.provider,
     };
   }
 

@@ -6,6 +6,7 @@ import { FLAME, CARBON } from "../lib/constants";
 import { Card } from "../components/Card";
 import { Btn } from "../components/Btn";
 import { BrandLogo } from "../components/BrandLogo";
+import { PublicShell } from "@/components/PublicShell";
 
 const OPENINGS = [
   { title: "Senior Frontend Engineer", dept: "Engineering", location: "Remote / San Francisco", type: "Full-time", salary: "$180k–$250k", applicants: "12 applied" },
@@ -26,7 +27,7 @@ export default function CareersPage() {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-white">
+    <PublicShell className="bg-white">
       {/* Header */}
       <div className="sticky top-0 z-30 border-b border-border bg-white/90 backdrop-blur-md">
         <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
@@ -122,6 +123,6 @@ export default function CareersPage() {
           <Btn onClick={() => { window.location.href = "mailto:careers@careergrowth.dev"; }}><Sparkles className="w-4 h-4" /> careers@careergrowth.dev</Btn>
         </Card>
       </div>
-    </div>
+    </PublicShell>
   );
 }

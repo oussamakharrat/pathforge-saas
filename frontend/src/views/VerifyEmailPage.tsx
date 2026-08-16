@@ -9,19 +9,21 @@ import { api } from '@/lib/api';
 import { PageLoading } from '@/components/PageLoading';
 import { Btn } from '@/components/Btn';
 import { Card } from '@/components/Card';
-import { FLAME, CARBON } from '@/lib/constants';
+import { CARBON } from '@/lib/constants';
+import { PublicShell } from '@/components/PublicShell';
 
 export default function VerifyEmailPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { refreshProfile, resendVerification, emailVerified, authed } = useAuth();
-  const [status, setStatus] = useState<'loading' | 'success' | 'error' | 'already'>('loading');
+  const { refreshProfile, resendVerification, emailVerified, authed, isLoading } = useAuth();
+  const [status, setStatus] = useState<'pending' | 'loading' | 'success' | 'error' | 'already'>(
+    'pending',
+  );
   const [errorMessage, setErrorMessage] = useState('');
-  const attempted = useRef(false);
+  const attemptedToken = useRef<string | null>(null);
 
   useEffect(() => {
-    if (attempted.current) return;
-    attempted.current = true;
+    if (isLoading) return;
 
     const token = searchParams.get('token');
     if (!token) {
@@ -30,31 +32,48 @@ export default function VerifyEmailPage() {
       return;
     }
 
-    if (emailVerified) {
+    if (emailVerified === true) {
       setStatus('already');
       return;
     }
 
+    if (attemptedToken.current === token) return;
+    attemptedToken.current = token;
+
+    setStatus('loading');
+    let cancelled = false;
+
     void api
       .verifyEmail(token)
-      .then(async () => {
-        setStatus('success');
+      .then(async (res) => {
+        if (cancelled) return;
+        setStatus(res.alreadyVerified ? 'already' : 'success');
         await refreshProfile();
-        toast.success('Email verified successfully!');
+        toast.success(
+          res.alreadyVerified ? 'Email is already verified.' : 'Email verified successfully!',
+        );
       })
-      .catch((err: Error) => {
+      .catch(async (err: Error) => {
+        if (cancelled) return;
+        if (authed) {
+          await refreshProfile().catch(() => undefined);
+        }
         setStatus('error');
         setErrorMessage(err.message || 'Invalid or expired verification link.');
       });
-  }, [searchParams, refreshProfile, emailVerified]);
 
-  if (status === 'loading') {
+    return () => {
+      cancelled = true;
+    };
+  }, [searchParams, refreshProfile, emailVerified, isLoading, authed]);
+
+  if (isLoading || status === 'pending' || status === 'loading') {
     return <PageLoading />;
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-6 bg-background">
-      <Card className="w-full max-w-md p-8 text-center" hover={false}>
+    <PublicShell className="flex items-center justify-center p-6">
+      <Card className="anim-pop w-full max-w-md p-8 text-center" hover={false}>
         {status === 'success' && (
           <>
             <CheckCircle2 className="w-14 h-14 mx-auto mb-4 text-emerald-500" />
@@ -107,6 +126,6 @@ export default function VerifyEmailPage() {
           </>
         )}
       </Card>
-    </div>
+    </PublicShell>
   );
 }

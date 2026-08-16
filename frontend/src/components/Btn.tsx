@@ -22,7 +22,7 @@ export function Btn({
   return (
     <button type={type} onClick={onClick} disabled={disabled}
       style={style}
-      className={cn("inline-flex items-center justify-center gap-2 rounded-xl transition-all duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-40 disabled:pointer-events-none transform active:scale-95", V[variant], S[size], full && "w-full", className)}>
+      className={cn("inline-flex items-center justify-center gap-2 rounded-xl tr-interactive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-40 disabled:pointer-events-none transform active:scale-95", V[variant], S[size], full && "w-full", className)}>
       {children}
     </button>
   );

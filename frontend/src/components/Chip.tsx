@@ -11,7 +11,7 @@ export function Chip({ children, variant = "default", className }: { children: R
   };
   const st = s[variant];
   return (
-    <span className={cn("inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold tracking-wide", className)}
+    <span className={cn("inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold tracking-wide tr-interactive", className)}
       style={{ backgroundColor: st.bg, color: st.color, border: st.border }}>
       {children}
     </span>

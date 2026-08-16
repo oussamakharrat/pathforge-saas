@@ -152,7 +152,7 @@ export function SkillAutocomplete({
           }}
           onFocus={() => setOpen(true)}
           onKeyDown={handleKeyDown}
-          className="h-11 w-full rounded-xl border border-border py-2 pl-10 pr-4 text-[13px] text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+          className="tr-input h-11 w-full rounded-xl border border-border py-2 pl-10 pr-4 text-[13px] text-foreground placeholder:text-muted-foreground focus:border-primary/60 focus:outline-none focus:ring-2 focus:ring-ring"
           style={{ backgroundColor: ALABASTER }}
         />
       </div>
@@ -161,7 +161,7 @@ export function SkillAutocomplete({
         <ul
           id={listId}
           role="listbox"
-          className="absolute z-[60] mt-1.5 max-h-64 w-full overflow-y-auto rounded-xl border border-border bg-white py-1 shadow-lg"
+          className="anim-dropdown absolute z-[60] mt-1.5 max-h-64 w-full overflow-y-auto rounded-xl border border-border bg-white py-1 shadow-lg"
         >
           {filtered.length > 0 && (
             <li className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
@@ -175,7 +175,7 @@ export function SkillAutocomplete({
                 onMouseDown={(event) => event.preventDefault()}
                 onClick={() => selectOption(option)}
                 className={cn(
-                  'flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors',
+                  'flex w-full items-center gap-3 px-3 py-2.5 text-left tr-interactive',
                   safeActiveIndex === index ? 'bg-orange-50' : 'hover:bg-secondary/70',
                 )}
               >
@@ -202,7 +202,7 @@ export function SkillAutocomplete({
                   onMouseDown={(event) => event.preventDefault()}
                   onClick={selectCustom}
                   className={cn(
-                    'flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors',
+                    'flex w-full items-center gap-3 px-3 py-2.5 text-left tr-interactive',
                     safeActiveIndex === filtered.length ? 'bg-orange-50' : 'hover:bg-secondary/70',
                   )}
                 >
@@ -223,7 +223,7 @@ export function SkillAutocomplete({
       )}
 
       {open && query && filtered.length === 0 && !showCustomOption && (
-        <div className="absolute z-[60] mt-1.5 w-full rounded-xl border border-border bg-white px-3 py-3 text-[12px] text-muted-foreground shadow-lg">
+        <div className="anim-dropdown absolute z-[60] mt-1.5 w-full rounded-xl border border-border bg-white px-3 py-3 text-[12px] text-muted-foreground shadow-lg">
           This skill is already in your profile.
         </div>
       )}

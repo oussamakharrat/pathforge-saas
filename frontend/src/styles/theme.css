@@ -2,6 +2,15 @@
 
 :root {
   --font-size: 15px;
+  --duration-fast:   120ms;
+  --duration-base:   200ms;
+  --duration-smooth: 300ms;
+  --duration-slow:   500ms;
+  --duration-bar:    700ms;
+  --ease-out:      cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out:   cubic-bezier(0.45, 0, 0.55, 1);
+  --ease-spring:   cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-gentle:   cubic-bezier(0.25, 0.1, 0.25, 1);
   --background: #FFFFFF;
   --foreground: #191919;
   --card: #FFFFFF;
@@ -119,19 +128,55 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+
+  /* Default transition tokens — applied to all Tailwind `transition*` utilities */
+  --default-transition-duration: var(--duration-base);
+  --default-transition-timing-function: var(--ease-gentle);
 }
 
 @layer base {
-  * {
+  *,
+  *::before,
+  *::after {
     @apply border-border outline-ring/50;
     scrollbar-width: none;
+    transition-property: color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;
+    transition-duration: var(--duration-base);
+    transition-timing-function: var(--ease-gentle);
   }
+
   *::-webkit-scrollbar { display: none; }
+
+  aside, nav, header, footer, main, section, article, [data-slot="card"] {
+    transition-property: color, background-color, border-color, box-shadow, opacity, transform, filter, backdrop-filter, margin, padding, width, max-width, gap;
+    transition-duration: var(--duration-smooth);
+    transition-timing-function: var(--ease-in-out);
+  }
 
   a, button, select, summary,
   [role="button"], [type="button"], [type="submit"], [type="reset"],
   label[for] {
     cursor: pointer;
+  }
+
+  input, textarea, select, [role="combobox"] {
+    transition-duration: var(--duration-base);
+    transition-timing-function: var(--ease-gentle);
+  }
+
+  input:focus, textarea:focus, select:focus,
+  input:focus-visible, textarea:focus-visible, select:focus-visible {
+    transition-duration: var(--duration-smooth);
+  }
+
+  /* Consistent timing for all Tailwind animate-in/out utilities */
+  .animate-in, .animate-out,
+  [class*="animate-in"], [class*="animate-out"] {
+    animation-timing-function: var(--ease-out) !important;
+  }
+
+  [data-state="open"], [data-state="closed"] {
+    animation-timing-function: var(--ease-out);
   }
 
   body {
@@ -154,21 +199,6 @@
    UNIFIED ANIMATION SYSTEM
    All animation tokens, keyframes, and utility classes in one place.
    ═══════════════════════════════════════════════════════════════════════════════ */
-
-:root {
-  /* ─── Timing tokens ────────────────────────────────────────────────────── */
-  --duration-fast:   120ms;   /* micro-interactions: checkbox, toggle */
-  --duration-base:   200ms;   /* default: buttons, links, small UI */
-  --duration-smooth: 300ms;   /* cards, panels, sidebar */
-  --duration-slow:   500ms;   /* page transitions, overlays */
-  --duration-bar:    700ms;   /* progress bars, chart fills */
-
-  /* ─── Easing tokens ────────────────────────────────────────────────────── */
-  --ease-out:      cubic-bezier(0.16, 1, 0.3, 1);    /* default — snappy decel */
-  --ease-in-out:   cubic-bezier(0.45, 0, 0.55, 1);   /* symmetric smooth */
-  --ease-spring:   cubic-bezier(0.34, 1.56, 0.64, 1); /* bouncy overshoot */
-  --ease-gentle:   cubic-bezier(0.25, 0.1, 0.25, 1);  /* subtle, polished */
-}
 
 /* ─── Keyframes ──────────────────────────────────────────────────────────── */
 
@@ -237,8 +267,28 @@
   to   { opacity: 1; backdrop-filter: blur(8px); }
 }
 
+@keyframes a-modal-out {
+  from { opacity: 1; transform: scale(1) translateY(0); }
+  to   { opacity: 0; transform: scale(0.96) translateY(8px); }
+}
+
+@keyframes a-dropdown-in {
+  from { opacity: 0; transform: translateY(-6px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes a-dropdown-out {
+  from { opacity: 1; transform: translateY(0) scale(1); }
+  to   { opacity: 0; transform: translateY(-4px) scale(0.98); }
+}
+
+@keyframes a-overlay-out {
+  from { opacity: 1; backdrop-filter: blur(8px); }
+  to   { opacity: 0; backdrop-filter: blur(0px); }
+}
+
 @keyframes a-modal-in {
-  from { opacity: 0; transform: scale(0.92) translateY(10px); }
+  from { opacity: 0; transform: scale(0.96) translateY(8px); }
   to   { opacity: 1; transform: scale(1) translateY(0); }
 }
 
@@ -281,7 +331,57 @@
 
 /* Modal container entrance */
 .anim-modal {
-  animation: a-modal-in var(--duration-smooth) var(--ease-spring) both;
+  animation: a-modal-in var(--duration-smooth) var(--ease-out) both;
+}
+
+/* Dropdown / autocomplete panels */
+.anim-dropdown {
+  animation: a-dropdown-in var(--duration-smooth) var(--ease-out) both;
+  transform-origin: top center;
+}
+
+.anim-dropdown-right {
+  animation: a-dropdown-in var(--duration-smooth) var(--ease-out) both;
+  transform-origin: top right;
+}
+
+/* Drawer / panel item entrance (use with inline animation-delay for stagger) */
+.anim-enter-item {
+  animation: a-fade-in-up var(--duration-smooth) var(--ease-out) both;
+}
+
+/* Avatar drawer — header slides in after sheet panel */
+.avatar-drawer-header {
+  animation: a-slide-in-right var(--duration-smooth) var(--ease-out) both;
+  animation-delay: 80ms;
+}
+
+/* Notification bell dropdown — anchored panel, transition only */
+.notif-dropdown {
+  transform-origin: top right;
+  transition:
+    opacity var(--duration-base) var(--ease-gentle),
+    transform var(--duration-base) var(--ease-gentle),
+    visibility var(--duration-base);
+}
+
+.notif-dropdown-closed {
+  opacity: 0;
+  transform: translateY(-4px);
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.notif-dropdown-open {
+  opacity: 1;
+  transform: translateY(0);
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.avatar-drawer-footer {
+  animation: a-fade-in-up var(--duration-smooth) var(--ease-out) both;
+  animation-delay: 280ms;
 }
 
 /* Progress bar fill */
@@ -318,6 +418,111 @@
 .anim-delay-4 { animation-delay: 200ms; }
 .anim-delay-5 { animation-delay: 250ms; }
 .anim-delay-6 { animation-delay: 300ms; }
+.anim-delay-7 { animation-delay: 350ms; }
+.anim-delay-8 { animation-delay: 400ms; }
+.anim-delay-9 { animation-delay: 450ms; }
+.anim-delay-10 { animation-delay: 500ms; }
+
+/* Cascade: stagger grids, stacks, and top-level sections inside pages */
+.anim-cascade > *,
+.anim-cascade [class*="grid"] > *,
+.anim-cascade [class*="space-y-"] > * {
+  animation: a-fade-in-up var(--duration-smooth) var(--ease-out) both;
+}
+
+.anim-cascade > *:nth-child(1),
+.anim-cascade [class*="grid"] > *:nth-child(1),
+.anim-cascade [class*="space-y-"] > *:nth-child(1) { animation-delay: 0ms; }
+.anim-cascade > *:nth-child(2),
+.anim-cascade [class*="grid"] > *:nth-child(2),
+.anim-cascade [class*="space-y-"] > *:nth-child(2) { animation-delay: 45ms; }
+.anim-cascade > *:nth-child(3),
+.anim-cascade [class*="grid"] > *:nth-child(3),
+.anim-cascade [class*="space-y-"] > *:nth-child(3) { animation-delay: 90ms; }
+.anim-cascade > *:nth-child(4),
+.anim-cascade [class*="grid"] > *:nth-child(4),
+.anim-cascade [class*="space-y-"] > *:nth-child(4) { animation-delay: 135ms; }
+.anim-cascade > *:nth-child(5),
+.anim-cascade [class*="grid"] > *:nth-child(5),
+.anim-cascade [class*="space-y-"] > *:nth-child(5) { animation-delay: 180ms; }
+.anim-cascade > *:nth-child(6),
+.anim-cascade [class*="grid"] > *:nth-child(6),
+.anim-cascade [class*="space-y-"] > *:nth-child(6) { animation-delay: 225ms; }
+.anim-cascade > *:nth-child(7),
+.anim-cascade [class*="grid"] > *:nth-child(7),
+.anim-cascade [class*="space-y-"] > *:nth-child(7) { animation-delay: 270ms; }
+.anim-cascade > *:nth-child(8),
+.anim-cascade [class*="grid"] > *:nth-child(8),
+.anim-cascade [class*="space-y-"] > *:nth-child(8) { animation-delay: 315ms; }
+.anim-cascade > *:nth-child(9),
+.anim-cascade [class*="grid"] > *:nth-child(9),
+.anim-cascade [class*="space-y-"] > *:nth-child(9) { animation-delay: 360ms; }
+.anim-cascade > *:nth-child(10),
+.anim-cascade [class*="grid"] > *:nth-child(10),
+.anim-cascade [class*="space-y-"] > *:nth-child(10) { animation-delay: 405ms; }
+.anim-cascade > *:nth-child(11),
+.anim-cascade [class*="grid"] > *:nth-child(11),
+.anim-cascade [class*="space-y-"] > *:nth-child(11) { animation-delay: 450ms; }
+.anim-cascade > *:nth-child(12),
+.anim-cascade [class*="grid"] > *:nth-child(12),
+.anim-cascade [class*="space-y-"] > *:nth-child(12) { animation-delay: 495ms; }
+
+/* Avoid double entrance when cascade already animates children */
+.anim-cascade .anim-card {
+  animation: none;
+}
+
+/* All Tailwind transition utilities share the same easing */
+.transition,
+.transition-all,
+.transition-colors,
+.transition-opacity,
+.transition-shadow,
+.transition-transform,
+[class*="transition-"] {
+  transition-timing-function: var(--ease-gentle);
+}
+
+.tr-layout,
+[class*="duration-300"] {
+  transition-timing-function: var(--ease-in-out);
+}
+
+/* Radix overlay surfaces — unified open/close timing */
+[data-slot="dialog-overlay"],
+[data-slot="sheet-overlay"],
+[data-slot="drawer-overlay"],
+[data-slot="alert-dialog-overlay"] {
+  animation-duration: var(--duration-smooth) !important;
+}
+
+[data-slot="dialog-content"],
+[data-slot="sheet-content"],
+[data-slot="drawer-content"],
+[data-slot="alert-dialog-content"],
+[data-slot="popover-content"],
+[data-slot="dropdown-menu-content"],
+[data-slot="select-content"],
+[data-slot="tooltip-content"],
+[data-slot="hover-card-content"],
+[data-slot="context-menu-content"],
+[data-slot="menubar-content"],
+[data-slot="navigation-menu-content"] {
+  animation-duration: var(--duration-smooth) !important;
+  animation-timing-function: var(--ease-out) !important;
+}
+
+/* Accordion & tabs content */
+[data-slot="accordion-content"],
+[data-slot="tabs-content"] {
+  transition-duration: var(--duration-smooth);
+  transition-timing-function: var(--ease-out);
+}
+
+/* Toast notifications */
+[data-sonner-toast] {
+  transition: transform var(--duration-smooth) var(--ease-out), opacity var(--duration-smooth) var(--ease-gentle), box-shadow var(--duration-base) var(--ease-gentle) !important;
+}
 
 /* ─── Unified interactive transitions ────────────────────────────────────── */
 
@@ -368,6 +573,28 @@
   transition-property: width;
   transition-duration: var(--duration-bar);
   transition-timing-function: var(--ease-out);
+}
+
+/* Form controls — smooth focus ring & border changes */
+.tr-input {
+  transition-property: color, background-color, border-color, outline-color, box-shadow, opacity, transform;
+  transition-duration: var(--duration-base);
+  transition-timing-function: var(--ease-gentle);
+}
+
+.tr-input:focus,
+.tr-input:focus-visible,
+.tr-input:focus-within {
+  transition-duration: var(--duration-smooth);
+}
+
+/* Radix / overlay surfaces (modals, sheets, drawers) */
+.ui-overlay {
+  transition: opacity var(--duration-smooth) var(--ease-gentle), backdrop-filter var(--duration-smooth) var(--ease-gentle);
+}
+
+.ui-panel {
+  transition: transform var(--duration-smooth) var(--ease-out), opacity var(--duration-smooth) var(--ease-out);
 }
 
 /* ─── Reduced motion ─────────────────────────────────────────────────────── */

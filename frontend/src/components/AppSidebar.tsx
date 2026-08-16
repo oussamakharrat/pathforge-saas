@@ -30,7 +30,7 @@ export function AppSidebar({ expanded, setExpanded }: { expanded: boolean; setEx
     return (
       <div key={item.id} className="relative group">
         <button onClick={() => locked ? requestUpgrade(item.id, item.label) : goTo(item.id as Page)}
-          className="w-full h-8 rounded-xl flex items-center transition-all duration-150"
+          className="w-full h-8 rounded-xl flex items-center tr-interactive"
           style={{
             backgroundColor: active ? "rgba(241,80,37,0.18)" : undefined,
             color: active ? FLAME : locked ? "rgba(230,232,230,0.18)" : "rgba(230,232,230,0.4)",
@@ -65,7 +65,7 @@ export function AppSidebar({ expanded, setExpanded }: { expanded: boolean; setEx
         </button>
         {/* Tooltip */}
         {!expanded && (
-          <div className="absolute left-full ml-2.5 top-1/2 -translate-y-1/2 z-50 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="absolute left-full ml-2.5 top-1/2 -translate-y-1/2 z-50 pointer-events-none opacity-0 group-hover:opacity-100 tr-opacity">
             <div className="bg-popover border border-border text-foreground text-[12px] font-bold px-2.5 py-1.5 rounded-lg shadow-lg whitespace-nowrap">
               {locked && lockMeta ? `${item.label} · Requires ${lockMeta.label}` : item.label}
             </div>
@@ -77,7 +77,7 @@ export function AppSidebar({ expanded, setExpanded }: { expanded: boolean; setEx
 
   return (
     <aside
-      className="fixed top-0 left-0 h-full z-40 flex flex-col py-2 gap-0 transition-all duration-200 ease-in-out"
+      className="fixed top-0 left-0 h-full z-40 flex flex-col py-2 gap-0 tr-layout"
       style={{
         width: expanded ? 256 : 56,
         backgroundColor: CARBON,
@@ -125,7 +125,7 @@ export function AppSidebar({ expanded, setExpanded }: { expanded: boolean; setEx
           return (
             <div key={item.id} className="relative group">
               <button onClick={() => goTo(item.id as Page)}
-                className="w-full h-8 rounded-xl flex items-center transition-all duration-150"
+                className="w-full h-8 rounded-xl flex items-center tr-interactive"
                 style={{
                   backgroundColor: isUpgrade && !active ? "rgba(251,191,36,0.12)" : active ? "rgba(241,80,37,0.18)" : undefined,
                   color: active ? FLAME : isUpgrade ? "#FBBF24" : "rgba(230,232,230,0.35)",
@@ -145,7 +145,7 @@ export function AppSidebar({ expanded, setExpanded }: { expanded: boolean; setEx
                 {expanded && <span className="ml-3 text-[12px] font-semibold whitespace-nowrap">{item.label}</span>}
               </button>
               {!expanded && (
-                <div className="absolute left-full ml-2.5 top-1/2 -translate-y-1/2 z-50 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="absolute left-full ml-2.5 top-1/2 -translate-y-1/2 z-50 pointer-events-none opacity-0 group-hover:opacity-100 tr-opacity">
                   <div className="bg-popover border border-border text-foreground text-[12px] font-bold px-2.5 py-1.5 rounded-lg shadow-lg whitespace-nowrap">
                     {item.label}
                   </div>

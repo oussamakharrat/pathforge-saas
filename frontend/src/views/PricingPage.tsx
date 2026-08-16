@@ -14,6 +14,7 @@ import { UserAvatar } from "../components/UserAvatar";
 import { useAuth } from "../contexts/AuthContext";
 import { FAQS } from "../data/initial-data";
 import type { Plan } from "../data/types";
+import { PublicShell } from "@/components/PublicShell";
 
 /* ─── Nav ─────────────────────────────────────── */
 function PricingNav() {
@@ -144,7 +145,7 @@ export default function PricingPage() {
   };
 
   return (
-    <div className="bg-white">
+    <PublicShell className="bg-white">
       <PricingNav />
 
       {/* ── Upgrade banner ── */}
@@ -390,6 +391,6 @@ export default function PricingPage() {
           </div>
         </div>
       </footer>
-    </div>
+    </PublicShell>
   );
 }

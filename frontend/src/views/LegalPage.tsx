@@ -6,6 +6,7 @@ import { FLAME, CARBON } from "../lib/constants";
 import { Card } from "../components/Card";
 import { Btn } from "../components/Btn";
 import { BrandLogo } from "../components/BrandLogo";
+import { PublicShell } from "@/components/PublicShell";
 
 interface LegalPageProps {
   page: "privacy" | "terms";
@@ -44,7 +45,7 @@ export default function LegalPage({ page }: LegalPageProps) {
   const Icon = content.icon;
 
   return (
-    <div className="min-h-screen bg-white">
+    <PublicShell className="bg-white">
       {/* Top bar */}
       <div className="sticky top-0 z-30 border-b border-border bg-white/90 backdrop-blur-md">
         <div className="max-w-4xl mx-auto px-4 h-14 flex items-center justify-between">
@@ -109,6 +110,6 @@ export default function LegalPage({ page }: LegalPageProps) {
           </Btn>
         </div>
       </div>
-    </div>
+    </PublicShell>
   );
 }
