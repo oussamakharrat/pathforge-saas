@@ -9,7 +9,12 @@ import { PrismaService } from '../prisma/prisma.service';
 import { DashboardProjector } from '../common/dashboard.projector';
 import { NotificationsHelper } from '../common/notifications.helper';
 import { GamificationUnlockService } from '../common/gamification-unlock.service';
+import { PlanService } from '../common/plan.service';
 import { assertFound, assertOwner } from '../common/assertions';
+import {
+  trackedApplicationWhere,
+  HIDDEN_JOB_SOURCES,
+} from '../common/tracked-applications';
 import { validateStatusTransition } from '../domain/application.logic';
 import {
   CreateJobPostingDto,
@@ -30,6 +35,7 @@ export class JobsService {
     private readonly dashboard: DashboardProjector,
     private readonly notifications: NotificationsHelper,
     private readonly gamification: GamificationUnlockService,
+    private readonly planService: PlanService,
   ) {}
 
   // ── Job Postings ──
@@ -122,10 +128,7 @@ export class JobsService {
 
   async listApplications(userId: string) {
     return this.prisma.application.findMany({
-      where: {
-        userId,
-        job: { source: { notIn: ['practice', 'negotiation_draft'] } },
-      },
+      where: trackedApplicationWhere(userId),
       include: {
         job: true,
         interviews: true,
@@ -152,6 +155,8 @@ export class JobsService {
   }
 
   async createApplication(userId: string, dto: CreateApplicationDto) {
+    await this.planService.assertQuota(userId, 'jobApplications');
+
     const job = assertFound(
       await this.prisma.jobPosting.findUnique({ where: { id: dto.jobId } }),
       'Job posting',

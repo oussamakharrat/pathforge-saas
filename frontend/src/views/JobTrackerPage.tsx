@@ -61,21 +61,26 @@ export default function JobTrackerPage() {
 
   const handleDrop = (to: KanbanCol) => {
     if (!dragging || dragging.from === to) { setDragging(null); setDragOver(null); return; }
-    void moveCard(dragging.card.id, dragging.from, to);
+    const { card, from } = dragging;
+    void moveCard(card.id, from, to).then((updated) => {
+      if (updated && selected?.id === card.id) {
+        setAppDetail(updated);
+      }
+    });
     const col = KANBAN_COLS.find(c => c.id === to);
-    toast.success(`${dragging.card.company} moved to ${col?.label}`);
+    toast.success(`${card.company} moved to ${col?.label}`);
 
-    if (to === "applied" && dragging.from === "saved") trackApplication();
+    if (to === "applied" && from === "saved") trackApplication();
     if (to === "interview") {
       trackInterview();
       toast.info("🎯 Interview added! Start mock interview prep now.", {
-        action: { label: "Prep Now", onClick: () => navigate(`/app/interview?company=${dragging.card.company}&role=${dragging.card.role}`) }
+        action: { label: "Prep Now", onClick: () => navigate(`/app/interview?company=${card.company}&role=${card.role}`) }
       });
     }
     if (to === "offer") {
       trackOffer();
       toast.success("🎉 Offer received! Open Salary Negotiation Agent?", {
-        action: { label: "Negotiate", onClick: () => navigate(`/app/negotiate?company=${dragging.card.company}&role=${dragging.card.role}&salary=${dragging.card.salary}`) }
+        action: { label: "Negotiate", onClick: () => navigate(`/app/negotiate?company=${card.company}&role=${card.role}&salary=${card.salary}`) }
       });
     }
     setDragging(null); setDragOver(null);

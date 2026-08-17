@@ -45,6 +45,7 @@ interface AuthContextType {
   emailVerified: boolean | null;
   resendVerification: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
 }
 
 const PLAN_LABELS: Record<Plan, string> = { free: 'Free', pro: 'Pro', premium: 'Premium' };
@@ -65,9 +66,11 @@ function mapCareerProfile(
     avatarUrl: String(cp?.avatarUrl ?? ''),
     experienceLevel:
       (cp?.experienceLevel as UserProfile['experienceLevel']) ?? '1-3',
-    educationLevel: 'bachelor',
-    referralSource: 'other',
-    biggestChallenges: [],
+    educationLevel:
+      (cp?.educationLevel as UserProfile['educationLevel']) ?? 'bachelor',
+    referralSource:
+      (cp?.referralSource as UserProfile['referralSource']) ?? 'other',
+    biggestChallenges: (cp?.biggestChallenges as string[]) ?? [],
     onboardingComplete: Boolean(cp?.onboardingComplete),
     purchasedServices: (cp?.purchasedServices as string[]) ?? [],
     notifyPush: cp?.notifyPush !== false,
@@ -224,11 +227,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      const updated = await api.updateProfile({
-        displayName: data.name,
+      const payload: Record<string, unknown> = {
         currentRole: data.currentRole,
         targetRole: data.targetRole,
         experienceLevel: data.experienceLevel,
+        educationLevel: data.educationLevel,
+        referralSource: data.referralSource,
+        biggestChallenges: data.biggestChallenges,
         location: data.location,
         bio: data.bio,
         avatarUrl: data.avatarUrl,
@@ -236,7 +241,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         notifyPush: data.notifyPush,
         notifyInsights: data.notifyInsights,
         notifyWeekly: data.notifyWeekly,
-      }) as Record<string, unknown>;
+      };
+      if (data.name !== undefined) {
+        payload.displayName = data.name;
+      }
+      const updated = await api.updateProfile(payload) as Record<string, unknown>;
 
       const mapped = mapMeToState(updated);
       setUser(mapped.user);
@@ -247,6 +256,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       throw err;
     }
   }, [hydrate]);
+
+  const changePassword = useCallback(async (currentPassword: string, newPassword: string) => {
+    await api.changePassword(currentPassword, newPassword);
+  }, []);
 
   const canAccess = useCallback((page: string) => canAccessPage(plan, page), [plan]);
   const planLabel = PLAN_LABELS[plan];
@@ -278,6 +291,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         emailVerified,
         resendVerification,
         refreshProfile: hydrate,
+        changePassword,
       }}
     >
       {children}

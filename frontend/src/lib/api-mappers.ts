@@ -125,8 +125,10 @@ export function apiApplicationsToKanban(
   apps: Record<string, unknown>[],
 ): Record<KanbanCol, KanbanCard[]> {
   const data = EMPTY_KANBAN();
+  const hiddenSources = new Set(['practice', 'negotiation_draft']);
   for (const app of apps) {
     const job = (app.job as Record<string, unknown>) ?? {};
+    if (hiddenSources.has(String(job.source ?? ''))) continue;
     const company = String(job.company ?? 'Unknown');
     const card: KanbanCard = {
       id: String(app.id),

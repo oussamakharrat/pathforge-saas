@@ -1,6 +1,7 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { DashboardProjector } from '../common/dashboard.projector';
+import { PlanService } from '../common/plan.service';
 import { assertFound, assertOwner } from '../common/assertions';
 import {
   CreateResumeDto,
@@ -14,6 +15,7 @@ export class ResumesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly dashboard: DashboardProjector,
+    private readonly planService: PlanService,
   ) {}
 
   async findAll(userId: string) {
@@ -37,6 +39,8 @@ export class ResumesService {
   }
 
   async create(userId: string, dto: CreateResumeDto) {
+    await this.planService.assertQuota(userId, 'resumes');
+
     const latest = await this.prisma.resume.findFirst({
       where: { userId },
       orderBy: { version: 'desc' },

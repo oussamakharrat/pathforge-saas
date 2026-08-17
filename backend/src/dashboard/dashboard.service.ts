@@ -1,6 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { DashboardProjector } from '../common/dashboard.projector';
+import {
+  trackedApplicationWhere,
+  trackedInterviewWhere,
+  trackedOfferWhere,
+  HIDDEN_JOB_SOURCES,
+} from '../common/tracked-applications';
 
 @Injectable()
 export class DashboardService {
@@ -18,15 +24,15 @@ export class DashboardService {
       totalOffers,
       negotiationsCompleted,
     ] = await Promise.all([
-      this.prisma.application.count({ where: { userId } }),
+      this.prisma.application.count({ where: trackedApplicationWhere(userId) }),
       this.prisma.interview.count({
-        where: { application: { userId } },
+        where: trackedInterviewWhere(userId),
       }),
       this.prisma.interview.count({
-        where: { application: { userId }, status: 'completed' },
+        where: { ...trackedInterviewWhere(userId), status: 'completed' },
       }),
       this.prisma.offer.count({
-        where: { application: { userId } },
+        where: trackedOfferWhere(userId),
       }),
       this.prisma.negotiation.count({
         where: { userId, status: 'accepted' },
@@ -49,7 +55,10 @@ export class DashboardService {
 
   async getJobMatchInsights(userId: string) {
     const jobs = await this.prisma.jobPosting.findMany({
-      where: { userId },
+      where: {
+        userId,
+        source: { notIn: [...HIDDEN_JOB_SOURCES] },
+      },
       include: { skills: true },
     });
     const userSkills = await this.prisma.userSkill.findMany({
@@ -90,7 +99,7 @@ export class DashboardService {
 
   async getInterviewReadiness(userId: string) {
     const interviews = await this.prisma.interview.findMany({
-      where: { application: { userId }, status: 'completed' },
+      where: { ...trackedInterviewWhere(userId), status: 'completed' },
     });
 
     const byRole = new Map<string, number[]>();

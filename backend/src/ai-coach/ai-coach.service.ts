@@ -1,12 +1,16 @@
 import { Injectable } from '@nestjs/common';
 import { AIMessageRole } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { PlanService } from '../common/plan.service';
 import { assertFound, assertOwner } from '../common/assertions';
 import { CreateConversationDto, SendMessageDto } from './dto/ai-coach.dto';
 
 @Injectable()
 export class AiCoachService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly planService: PlanService,
+  ) {}
 
   async listConversations(userId: string) {
     return this.prisma.aIConversation.findMany({
@@ -43,6 +47,7 @@ export class AiCoachService {
     dto: SendMessageDto,
   ) {
     const conv = await this.getConversation(userId, conversationId);
+    await this.planService.assertQuota(userId, 'aiMessages');
     const order = conv.messages.length;
 
     const userMessage = await this.prisma.aIMessage.create({

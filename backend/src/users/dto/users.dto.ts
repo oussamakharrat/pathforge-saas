@@ -24,6 +24,9 @@ export class UpdateProfileDto {
   @IsOptional() @IsBoolean() notifyPush?: boolean;
   @IsOptional() @IsBoolean() notifyInsights?: boolean;
   @IsOptional() @IsBoolean() notifyWeekly?: boolean;
+  @IsOptional() @IsString() educationLevel?: string;
+  @IsOptional() @IsString() referralSource?: string;
+  @IsOptional() @IsArray() biggestChallenges?: string[];
 }
 
 export class PurchaseServiceDto {

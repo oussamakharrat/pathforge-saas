@@ -33,7 +33,7 @@ interface JobsContextType {
   loading: boolean;
   refreshApplications: () => Promise<void>;
   updateApplicationNotes: (cardId: string, notes: string) => Promise<void>;
-  moveCard: (cardId: string, from: KanbanCol, to: KanbanCol) => Promise<void>;
+  moveCard: (cardId: string, from: KanbanCol, to: KanbanCol) => Promise<Record<string, unknown> | void>;
   addCard: (col: KanbanCol, card: Omit<KanbanCard, 'id'>, goalId?: string) => Promise<void>;
   removeCard: (cardId: string, col: KanbanCol) => Promise<void>;
   jobMatchInsights: Record<string, unknown>[];
@@ -77,7 +77,9 @@ export function JobsProvider({ children }: { children: ReactNode }) {
       [to]: [...prev[to], card],
     }));
     try {
-      await api.updateApplicationStatus(cardId, COL_TO_STATUS[to]);
+      const updated = await api.updateApplicationStatus(cardId, COL_TO_STATUS[to]);
+      await refreshApplications();
+      return updated;
     } catch {
       toast.error('Failed to update application status');
       void refreshApplications();

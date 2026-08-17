@@ -20,6 +20,7 @@ import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { ReferenceModule } from './reference/reference.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
+import { PlanGuard } from './auth/guards/plan.guard';
 
 @Module({
   imports: [
@@ -47,6 +48,10 @@ import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: PlanGuard,
     },
   ],
 })

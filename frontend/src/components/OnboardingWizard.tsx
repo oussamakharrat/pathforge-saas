@@ -124,8 +124,6 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
     if (isLast) {
       // Save profile and complete
       updateProfile({
-        name: "",
-        email: "",
         targetRole: targetRole.trim(),
         experienceLevel: experience!,
         educationLevel: education!,
@@ -176,7 +174,7 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
               const isDone = i < stepIndex;
               return (
                 <div key={s.key} className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 transition-all duration-300"
+                  <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-all duration-300"
                     style={{
                       backgroundColor: isDone ? FLAME : isActive ? "rgba(241,80,37,0.15)" : "transparent",
                       border: isDone ? "none" : `1px solid ${isActive ? FLAME : DUST}`,
@@ -196,7 +194,7 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
 
       {/* Right panel — the wizard */}
       <div className="flex-1 flex items-center justify-center p-8 md:p-10 lg:p-14">
-        <div className="w-full max-w-[520px]">
+        <div className="w-full max-w-130">
           {/* Mobile progress */}
           <div className="flex items-center gap-3 mb-6 md:hidden">
             <div className="flex-1 h-1.5 rounded-full" style={{ backgroundColor: DUST }}>
@@ -274,7 +272,7 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
                         backgroundColor: selected ? "rgba(241,80,37,0.05)" : ALABASTER,
                       }}
                     >
-                      <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
+                      <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
                         style={{ backgroundColor: selected ? FLAME : "white" }}>
                         {selected ? <Check className="w-4 h-4 text-white" /> : <Briefcase className="w-4 h-4" style={{ color: DUST }} />}
                       </div>
@@ -333,9 +331,9 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
                           backgroundColor: selected ? "rgba(241,80,37,0.05)" : ALABASTER,
                         }}
                       >
-                        <Icon className="w-4 h-4 flex-shrink-0" style={{ color: selected ? FLAME : DUST }} />
+                        <Icon className="w-4 h-4 shrink-0" style={{ color: selected ? FLAME : DUST }} />
                         <span className="text-[12px] font-semibold flex-1" style={{ color: selected ? FLAME : CARBON }}>{opt.value}</span>
-                        {selected && <Check className="w-3.5 h-3.5 flex-shrink-0" style={{ color: FLAME }} />}
+                        {selected && <Check className="w-3.5 h-3.5 shrink-0" style={{ color: FLAME }} />}
                       </button>
                     );
                   })}
@@ -359,7 +357,7 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
                         backgroundColor: selected ? "rgba(241,80,37,0.05)" : ALABASTER,
                       }}
                     >
-                      <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                      <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
                         style={{ backgroundColor: selected ? FLAME : "white" }}>
                         <Icon className="w-4.5 h-4.5" style={{ color: selected ? "white" : DUST }} />
                       </div>

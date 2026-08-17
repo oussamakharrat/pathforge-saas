@@ -5,6 +5,7 @@ import { NotificationsHelper } from '../common/notifications.helper';
 import { DashboardProjector } from '../common/dashboard.projector';
 import { GamificationUnlockService } from '../common/gamification-unlock.service';
 import { assertFound, assertOwner } from '../common/assertions';
+import { HIDDEN_JOB_SOURCES } from '../common/tracked-applications';
 import {
   CreateNegotiationDto,
   UpdateNegotiationDto,
@@ -128,6 +129,30 @@ export class NegotiationsService {
       throw new BadRequestException('Target salary must be >= offered salary');
     }
 
+    const existingTrackedApp = await this.prisma.application.findFirst({
+      where: {
+        userId,
+        job: {
+          company: dto.company,
+          title: dto.role,
+          source: { notIn: [...HIDDEN_JOB_SOURCES] },
+        },
+      },
+      include: {
+        job: true,
+        offers: { include: { negotiation: true } },
+      },
+      orderBy: { updatedAt: 'desc' },
+    });
+
+    if (existingTrackedApp) {
+      return this.ensureNegotiationForApplication(
+        userId,
+        existingTrackedApp,
+        dto,
+      );
+    }
+
     let job = await this.prisma.jobPosting.findFirst({
       where: {
         userId,
@@ -175,6 +200,28 @@ export class NegotiationsService {
       });
     }
 
+    return this.ensureNegotiationForApplication(userId, application, dto);
+  }
+
+  private async ensureNegotiationForApplication(
+    userId: string,
+    application: {
+      id: string;
+      status: ApplicationStatus;
+      offers: Array<{
+        id: string;
+        negotiation: { id: string } | null;
+      }>;
+    },
+    dto: AnalyzeOfferDto,
+  ) {
+    if (application.status !== ApplicationStatus.offer) {
+      await this.prisma.application.update({
+        where: { id: application.id },
+        data: { status: ApplicationStatus.offer },
+      });
+    }
+
     let offer = application.offers[0];
     if (!offer) {
       offer = await this.prisma.offer.create({
@@ -203,7 +250,9 @@ export class NegotiationsService {
           targetSalary: dto.targetSalary,
           strategy: dto.strategy ?? 'Market-aligned counter-offer',
         },
-        include: { offer: { include: { application: { include: { job: true } } } } },
+        include: {
+          offer: { include: { application: { include: { job: true } } } },
+        },
       });
     }
 
@@ -217,7 +266,9 @@ export class NegotiationsService {
         talkingPoints: [],
         status: NegotiationStatus.pending,
       },
-      include: { offer: { include: { application: { include: { job: true } } } } },
+      include: {
+        offer: { include: { application: { include: { job: true } } } },
+      },
     });
 
     await this.notifications.create(

@@ -9,6 +9,7 @@ import {
 } from '@nestjs/common';
 import { JobsService } from './jobs.service';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { RequirePlan } from '../auth/decorators/require-plan.decorator';
 import {
   CreateJobPostingDto,
   UpdateJobPostingDto,
@@ -22,6 +23,7 @@ import {
 } from './dto/jobs.dto';
 
 @Controller('jobs')
+@RequirePlan('pro')
 export class JobsController {
   constructor(private readonly service: JobsService) {}
 
@@ -94,6 +96,7 @@ export class JobsController {
   }
 
   @Post('mock-interviews')
+  @RequirePlan('premium')
   createMockInterview(
     @CurrentUser() user: { id: string },
     @Body() dto: CreateMockInterviewDto,

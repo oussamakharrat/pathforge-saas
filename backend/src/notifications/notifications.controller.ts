@@ -1,10 +1,19 @@
-import { Controller, Get, Patch, Delete, Query, Param } from '@nestjs/common';
+import { Controller, Get, Patch, Delete, Post, Query, Param, Body } from '@nestjs/common';
 import { NotificationsService } from './notifications.service';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { CreateNotificationDto } from './dto/create-notification.dto';
 
 @Controller('notifications')
 export class NotificationsController {
   constructor(private readonly service: NotificationsService) {}
+
+  @Post()
+  create(
+    @CurrentUser() user: { id: string },
+    @Body() dto: CreateNotificationDto,
+  ) {
+    return this.service.create(user.id, dto);
+  }
 
   @Get()
   findAll(

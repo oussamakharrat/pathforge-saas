@@ -365,9 +365,9 @@ export default function PricingPage() {
               <p className="text-[12px] leading-relaxed" style={{ color: DUST }}>The AI career platform for ambitious engineers.</p>
             </div>
             {[
-              { title: "Product", links: [{ name: "Dashboard", to: "/app/dashboard" }, { name: "AI Coach", to: "/app/ai-coach" }, { name: "Mock Interviews", to: "/app/interviews" }, { name: "Job Tracker", to: "/app/jobs" }] },
+              { title: "Product", links: [{ name: "Dashboard", to: "/app/dashboard" }, { name: "AI Coach", to: "/app/coach" }, { name: "Mock Interviews", to: "/app/interview" }, { name: "Job Tracker", to: "/app/tracker" }] },
               { title: "Services", links: [{ name: "Resume Review", to: "/app/services" }, { name: "CV Rewrite", to: "/app/services" }, { name: "LinkedIn Opt.", to: "/app/services" }, { name: "Salary Coach", to: "/app/negotiate" }] },
-              { title: "Company", links: [{ name: "About", to: "/" }, { name: "Blog", to: "https://blog.pathforge.dev" }, { name: "Careers", to: "https://careers.pathforge.dev" }, { name: "Privacy", to: "/" }] },
+              { title: "Company", links: [{ name: "About", to: "/" }, { name: "Blog", to: "/blog" }, { name: "Careers", to: "/careers" }, { name: "Help", to: "/help" }] },
             ].map(col => (
               <div key={col.title}>
                 <p className="text-[12px] font-black uppercase tracking-widest mb-4 text-white/50">{col.title}</p>
@@ -384,8 +384,12 @@ export default function PricingPage() {
           <div className="border-t pt-8 flex flex-col sm:flex-row items-center justify-between gap-4" style={{ borderColor: "rgba(230,232,230,0.08)" }}>
             <p className="text-[12px]" style={{ color: DUST }}>© 2025 PathForge. All rights reserved.</p>
             <div className="flex gap-5">
-              {["Privacy", "Terms", "Cookies"].map(l => (
-                <button key={l} onClick={() => toast.info(`${l} policy page coming soon.`)} className="text-[12px] hover:text-white transition-colors" style={{ color: DUST }}>{l}</button>
+              {[
+                { label: "Privacy", to: "/privacy" },
+                { label: "Terms", to: "/terms" },
+                { label: "Cookies", to: "/privacy" },
+              ].map(({ label, to }) => (
+                <button key={label} onClick={() => navigate(to)} className="text-[12px] hover:text-white transition-colors" style={{ color: DUST }}>{label}</button>
               ))}
             </div>
           </div>

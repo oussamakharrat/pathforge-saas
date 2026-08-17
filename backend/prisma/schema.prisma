@@ -194,6 +194,9 @@ model CareerProfile {
   notifyPush          Boolean  @default(true)
   notifyInsights      Boolean  @default(true)
   notifyWeekly        Boolean  @default(true)
+  educationLevel      String   @default("bachelor")
+  referralSource      String   @default("other")
+  biggestChallenges   String[] @default([])
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 

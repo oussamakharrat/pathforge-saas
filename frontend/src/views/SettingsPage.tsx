@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate } from "@/lib/router";
 import { toast } from "sonner";
-import { User, Mail, Briefcase, Globe, Edit3, Check, Award, ExternalLink, X, Copy } from "lucide-react";
+import { User, Mail, Briefcase, Globe, Edit3, Check, Award, ExternalLink, X, Copy, Lock } from "lucide-react";
 import { FLAME, CARBON, DUST } from "../lib/constants";
 import { Card } from "../components/Card";
 import { Btn } from "../components/Btn";
@@ -15,7 +15,7 @@ import { api } from "@/lib/api";
 import { useCareerData } from "../contexts/CareerDataContext";
 import { prepareAvatarImage } from "../lib/avatar-image";
 import { UserAvatar } from "../components/UserAvatar";
-import type { Plan } from "../data/types";
+import type { Plan, UserProfile } from "../data/types";
 
 const PLAN_DETAILS: Record<Plan, { tagline: string; aiLimit: number; resumeLimit: number; jobLimit: number }> = {
   free: { tagline: "5 AI messages/month", aiLimit: 5, resumeLimit: 1, jobLimit: 10 },
@@ -47,6 +47,14 @@ const PLAN_STYLE: Record<Plan, { bg: string; border: string; badgeBg: string; ba
   },
 };
 
+const EXPERIENCE_OPTIONS: { value: UserProfile["experienceLevel"]; label: string }[] = [
+  { value: "0-1", label: "0–1 years" },
+  { value: "1-3", label: "1–3 years" },
+  { value: "3-5", label: "3–5 years" },
+  { value: "5-10", label: "5–10 years" },
+  { value: "10+", label: "10+ years" },
+];
+
 function computeProfileCompletion(
   name: string,
   email: string,
@@ -67,7 +75,7 @@ function formatMemberSince(createdAt: string): string {
 
 export default function SettingsPage() {
   const navigate = useNavigate();
-  const { logout, user, profile, plan, planLabel, updateProfile, cancelPlan, isLoading } = useAuth();
+  const { logout, user, profile, plan, planLabel, updateProfile, cancelPlan, changePassword, isLoading } = useAuth();
   const { purchasedServices, outcomes, careerScore, skills } = useCareerData();
   const hasLinkedIn = purchasedServices.includes("LinkedIn Optimization");
 
@@ -76,7 +84,14 @@ export default function SettingsPage() {
   const [weekly, setWeekly] = useState(false);
   const [name, setName] = useState("");
   const [role, setRole] = useState("");
+  const [targetRole, setTargetRole] = useState("");
+  const [experienceLevel, setExperienceLevel] = useState<UserProfile["experienceLevel"]>("1-3");
+  const [bio, setBio] = useState("");
   const [location, setLocation] = useState("");
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [changingPassword, setChangingPassword] = useState(false);
   const [saving, setSaving] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
@@ -87,7 +102,10 @@ export default function SettingsPage() {
   useEffect(() => {
     queueMicrotask(() => {
       setName(user?.name ?? profile?.name ?? "");
-      setRole(profile?.currentRole ?? profile?.targetRole ?? "");
+      setRole(profile?.currentRole ?? "");
+      setTargetRole(profile?.targetRole ?? "");
+      setExperienceLevel(profile?.experienceLevel ?? "1-3");
+      setBio(profile?.bio ?? "");
       setLocation(profile?.location ?? "");
       setAvatarUrl(profile?.avatarUrl ?? "");
       setNotif(profile?.notifyPush !== false);
@@ -116,7 +134,7 @@ export default function SettingsPage() {
     email,
     role,
     location,
-    profile?.targetRole ?? "",
+    targetRole,
   );
 
   const topSkills = useMemo(
@@ -164,6 +182,9 @@ export default function SettingsPage() {
       await updateProfile({
         name: name.trim(),
         currentRole: role.trim(),
+        targetRole: targetRole.trim(),
+        experienceLevel,
+        bio: bio.trim(),
         location: location.trim(),
       });
       toast.success("Settings saved!");
@@ -189,6 +210,33 @@ export default function SettingsPage() {
       toast.error(err instanceof Error ? err.message : "Failed to upload photo");
     } finally {
       setUploadingAvatar(false);
+    }
+  };
+
+  const handlePasswordChange = async () => {
+    if (!currentPassword || !newPassword) {
+      toast.error("Enter your current and new password");
+      return;
+    }
+    if (newPassword.length < 8) {
+      toast.error("New password must be at least 8 characters");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      toast.error("New passwords do not match");
+      return;
+    }
+    setChangingPassword(true);
+    try {
+      await changePassword(currentPassword, newPassword);
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      toast.success("Password updated successfully");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to update password");
+    } finally {
+      setChangingPassword(false);
     }
   };
 
@@ -315,17 +363,45 @@ export default function SettingsPage() {
           <div className="grid gap-4 p-5 sm:grid-cols-2">
             <Field label="Full Name" value={name} onChange={setName} Left={User} />
             <Field label="Email" type="email" value={email} onChange={() => undefined} Left={Mail} readOnly />
-            <Field label="Current Role" value={role} onChange={setRole} Left={Briefcase} placeholder={profile?.targetRole || "e.g. Full-Stack Engineer"} />
+            <Field label="Current Role" value={role} onChange={setRole} Left={Briefcase} placeholder="e.g. Full-Stack Engineer" />
+            <Field label="Target Role" value={targetRole} onChange={setTargetRole} Left={Briefcase} placeholder="e.g. Senior Engineer" />
             <Field label="Location" value={location} onChange={setLocation} Left={Globe} placeholder="City, Country" />
-          </div>
-          {profile?.targetRole && (
-            <div className="px-5 pb-2">
-              <p className="text-[11px] text-muted-foreground">
-                Target role: <span className="font-semibold" style={{ color: CARBON }}>{profile.targetRole}</span>
-                {" · "}Experience: {profile.experienceLevel} years
-              </p>
+            <div>
+              <label className="mb-1.5 block text-[12px] font-semibold text-muted-foreground">Experience Level</label>
+              <select
+                value={experienceLevel}
+                onChange={(e) => setExperienceLevel(e.target.value as UserProfile["experienceLevel"])}
+                className="tr-input h-11 w-full rounded-xl border border-border bg-input-background px-3 text-[13px] text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+              >
+                {EXPERIENCE_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
             </div>
-          )}
+            <div className="sm:col-span-2">
+              <label className="mb-1.5 block text-[12px] font-semibold text-muted-foreground">Bio</label>
+              <textarea
+                value={bio}
+                onChange={(e) => setBio(e.target.value)}
+                rows={3}
+                placeholder="Tell us about your career goals and background..."
+                className="tr-input w-full rounded-xl border border-border bg-input-background px-4 py-3 text-[13px] text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+              />
+            </div>
+          </div>
+          <div className="border-t border-border px-5 py-5">
+            <p className="mb-3 text-[13px] font-black" style={{ color: CARBON }}>Change Password</p>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Current Password" type="password" value={currentPassword} onChange={setCurrentPassword} Left={Lock} />
+              <Field label="New Password" type="password" value={newPassword} onChange={setNewPassword} Left={Lock} />
+              <Field label="Confirm New Password" type="password" value={confirmPassword} onChange={setConfirmPassword} Left={Lock} className="sm:col-span-2" />
+            </div>
+            <div className="mt-4 flex justify-end">
+              <Btn size="sm" onClick={() => void handlePasswordChange()} disabled={changingPassword}>
+                {changingPassword ? "Updating..." : "Update Password"}
+              </Btn>
+            </div>
+          </div>
           <div className="flex justify-end border-t border-border px-5 py-4">
             <Btn size="sm" onClick={() => void save()} disabled={saving}>{saving ? <><span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/30 border-t-white" /> Saving...</> : <><Check className="h-3.5 w-3.5" /> Save Changes</>}</Btn>
           </div>

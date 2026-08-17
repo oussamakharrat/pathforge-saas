@@ -9,6 +9,7 @@ import {
 } from '@nestjs/common';
 import { LearningPlansService } from './learning-plans.service';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { RequirePlan } from '../auth/decorators/require-plan.decorator';
 import {
   CreateLearningPlanDto,
   UpdateLearningPlanDto,
@@ -17,6 +18,7 @@ import {
 } from './dto/learning-plans.dto';
 
 @Controller('learning-plans')
+@RequirePlan('pro')
 export class LearningPlansController {
   constructor(private readonly service: LearningPlansService) {}
 

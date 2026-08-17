@@ -51,11 +51,14 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
   const addNotification = useCallback(
     (type: NotificationType, title: string, message: string, link?: string) => {
-      void type;
-      void title;
-      void message;
-      void link;
-      refresh();
+      void api
+        .createNotification({ type, title, message, link })
+        .then((created) => {
+          setNotifications((prev) => [mapApiNotification(created), ...prev]);
+        })
+        .catch(() => {
+          refresh();
+        });
     },
     [refresh],
   );
@@ -78,10 +81,19 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   const clearAll = useCallback(async () => {
     const snapshot = notifications;
     setNotifications([]);
-    await Promise.all(snapshot.map((n) => api.deleteNotification(n.id).catch(() => undefined)));
-  }, [notifications]);
+    try {
+      await api.clearReadNotifications();
+      const unread = snapshot.filter((n) => !n.read);
+      await Promise.all(unread.map((n) => api.deleteNotification(n.id)));
+    } catch {
+      void refresh();
+    }
+  }, [notifications, refresh]);
 
-  const unreadCount = useMemo(() => notifications.filter((n) => !n.read).length, [notifications]);
+  const unreadCount = useMemo(
+    () => notifications.filter((n) => !n.read).length,
+    [notifications],
+  );
 
   return (
     <NotificationContext.Provider

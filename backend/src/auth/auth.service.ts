@@ -13,11 +13,13 @@ import { DashboardProjector } from '../common/dashboard.projector';
 import { NotificationsHelper } from '../common/notifications.helper';
 import { GamificationUnlockService } from '../common/gamification-unlock.service';
 import { EmailService } from '../common/email.service';
+import { assertFound } from '../common/assertions';
 import { calculateStreak } from '../domain/user.logic';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import type { OAuthProfile } from './interfaces/oauth-profile.interface';
 
@@ -339,6 +341,30 @@ export class AuthService {
     });
 
     await this.prisma.refreshToken.deleteMany({ where: { userId: user.id } });
+
+    return { message: 'Password updated successfully' };
+  }
+
+  async changePassword(userId: string, dto: ChangePasswordDto) {
+    const user = assertFound(
+      await this.prisma.user.findUnique({ where: { id: userId } }),
+      'User',
+    );
+
+    const isPasswordValid = await bcrypt.compare(
+      dto.currentPassword,
+      user.password,
+    );
+    if (!isPasswordValid) {
+      throw new UnauthorizedException('Current password is incorrect');
+    }
+
+    const hashedPassword = await bcrypt.hash(dto.newPassword, 10);
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { password: hashedPassword },
+    });
+    await this.prisma.refreshToken.deleteMany({ where: { userId } });
 
     return { message: 'Password updated successfully' };
   }

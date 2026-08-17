@@ -1,6 +1,7 @@
 import { Controller, Get, Post, Patch, Delete, Body, Param } from '@nestjs/common';
 import { NegotiationsService } from './negotiations.service';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { RequirePlan } from '../auth/decorators/require-plan.decorator';
 import {
   CreateNegotiationDto,
   UpdateNegotiationDto,
@@ -8,6 +9,7 @@ import {
 import { AnalyzeOfferDto } from './dto/analyze-offer.dto';
 
 @Controller('negotiations')
+@RequirePlan('premium')
 export class NegotiationsController {
   constructor(private readonly service: NegotiationsService) {}
 

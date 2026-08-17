@@ -5,6 +5,11 @@ import {
   LearningPlanStatus,
   ApplicationStatus,
 } from '@prisma/client';
+import {
+  trackedApplicationWhere,
+  trackedInterviewWhere,
+  trackedOfferWhere,
+} from './tracked-applications';
 
 @Injectable()
 export class DashboardProjector {
@@ -30,7 +35,7 @@ export class DashboardProjector {
       }),
       this.prisma.application.count({
         where: {
-          userId,
+          ...trackedApplicationWhere(userId),
           status: {
             notIn: [ApplicationStatus.rejected, ApplicationStatus.accepted],
           },
@@ -38,14 +43,14 @@ export class DashboardProjector {
       }),
       this.prisma.interview.count({
         where: {
-          application: { userId },
+          ...trackedInterviewWhere(userId),
           status: 'scheduled',
           date: { gte: new Date() },
         },
       }),
       this.prisma.offer.count({
         where: {
-          application: { userId },
+          ...trackedOfferWhere(userId),
           status: 'pending',
         },
       }),
@@ -79,7 +84,9 @@ export class DashboardProjector {
     const [skills, goals, applications, resumes, badges] = await Promise.all([
       this.prisma.userSkill.findMany({ where: { userId } }),
       this.prisma.goal.findMany({ where: { userId } }),
-      this.prisma.application.findMany({ where: { userId } }),
+      this.prisma.application.findMany({
+        where: trackedApplicationWhere(userId),
+      }),
       this.prisma.resume.findMany({ where: { userId } }),
       this.prisma.userBadge.findMany({
         where: { userId, earnedAt: { not: null } },

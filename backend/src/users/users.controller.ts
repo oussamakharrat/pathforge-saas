@@ -1,6 +1,7 @@
 import { Controller, Get, Patch, Post, Put, Delete, Body, Param } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { RequirePlan } from '../auth/decorators/require-plan.decorator';
 import {
   UpdateProfileDto,
   UpsertUserSkillDto,
@@ -53,6 +54,7 @@ export class UsersController {
   }
 
   @Post('me/purchased-services')
+  @RequirePlan('pro')
   purchaseService(
     @CurrentUser() user: { id: string },
     @Body() dto: PurchaseServiceDto,

@@ -1,9 +1,11 @@
 import { Controller, Get, Post, Body, Param } from '@nestjs/common';
 import { AiCoachService } from './ai-coach.service';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { RequirePlan } from '../auth/decorators/require-plan.decorator';
 import { CreateConversationDto, SendMessageDto } from './dto/ai-coach.dto';
 
 @Controller('ai-coach')
+@RequirePlan('pro')
 export class AiCoachController {
   constructor(private readonly service: AiCoachService) {}
 

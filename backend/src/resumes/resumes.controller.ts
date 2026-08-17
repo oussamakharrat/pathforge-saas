@@ -9,6 +9,7 @@ import {
 } from '@nestjs/common';
 import { ResumesService } from './resumes.service';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { RequirePlan } from '../auth/decorators/require-plan.decorator';
 import {
   CreateResumeDto,
   UpdateResumeDto,
@@ -17,6 +18,7 @@ import {
 } from './dto/resumes.dto';
 
 @Controller('resumes')
+@RequirePlan('pro')
 export class ResumesController {
   constructor(private readonly service: ResumesService) {}
 

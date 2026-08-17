@@ -447,6 +447,25 @@ export const api = {
     return request('/notifications/read', { method: 'DELETE' });
   },
 
+  createNotification(data: {
+    type: string;
+    title: string;
+    message: string;
+    link?: string;
+  }) {
+    return request<Record<string, unknown>>('/notifications', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  changePassword(currentPassword: string, newPassword: string) {
+    return request('/auth/change-password', {
+      method: 'POST',
+      body: JSON.stringify({ currentPassword, newPassword }),
+    });
+  },
+
   getSubscription() {
     return request<Record<string, unknown> | null>('/subscriptions/me');
   },

@@ -1,10 +1,27 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { NotificationsHelper } from '../common/notifications.helper';
 import { assertFound, assertOwner } from '../common/assertions';
+import { CreateNotificationDto } from './dto/create-notification.dto';
 
 @Injectable()
 export class NotificationsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notificationsHelper: NotificationsHelper,
+  ) {}
+
+  async create(userId: string, dto: CreateNotificationDto) {
+    return this.notificationsHelper.create(
+      userId,
+      dto.type,
+      dto.title,
+      dto.message,
+      dto.sourceEntityId,
+      dto.sourceEntityType,
+      dto.link,
+    );
+  }
 
   async findAll(userId: string, unreadOnly = false) {
     return this.prisma.notification.findMany({
