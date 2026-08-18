@@ -1,0 +1,44 @@
+# Optional local PostgreSQL with pgvector (offline dev only).
+# Usage: docker compose -f docker-compose.yml -f docker-compose.local-db.yml up --build
+#
+# By default, docker-compose.yml uses Supabase credentials from backend/.env
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: pathforge
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d pathforge"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  db-init:
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/pathforge
+      DIRECT_URL: postgresql://postgres:postgres@postgres:5432/pathforge
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  backend:
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/pathforge
+      DIRECT_URL: postgresql://postgres:postgres@postgres:5432/pathforge
+    depends_on:
+      postgres:
+        condition: service_healthy
+      db-init:
+        condition: service_completed_successfully
+
+volumes:
+  postgres_data:

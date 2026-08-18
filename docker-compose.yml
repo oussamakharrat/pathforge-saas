@@ -1,39 +1,21 @@
 services:
-  postgres:
-    image: postgres:16-alpine
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: pathforge
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d pathforge"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-      start_period: 10s
-
   db-init:
     build:
       context: ./backend
       target: builder
+    env_file:
+      - ./backend/.env
     environment:
-      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/pathforge
-      DIRECT_URL: postgresql://postgres:postgres@postgres:5432/pathforge
       SEED_DATABASE: ${SEED_DATABASE:-true}
-    depends_on:
-      postgres:
-        condition: service_healthy
     restart: "no"
     command:
       - sh
       - -c
       - |
         set -e
+        echo "Enabling pgvector on Supabase..."
+        npx ts-node scripts/ensure-pgvector.ts
+        echo "Applying Prisma schema..."
         npx prisma db push
         if [ "$$SEED_DATABASE" = "true" ]; then
           npx ts-node src/prisma/seed.ts
@@ -50,8 +32,6 @@ services:
       - ./backend/.env
     environment:
       PORT: 5000
-      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/pathforge
-      DIRECT_URL: postgresql://postgres:postgres@postgres:5432/pathforge
       JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
@@ -59,8 +39,6 @@ services:
       BACKEND_URL: ${BACKEND_URL:-http://localhost:5000}
       NODE_ENV: ${NODE_ENV:-development}
     depends_on:
-      postgres:
-        condition: service_healthy
       db-init:
         condition: service_completed_successfully
 
@@ -74,6 +52,3 @@ services:
       - "3000:3000"
     depends_on:
       - backend
-
-volumes:
-  postgres_data:

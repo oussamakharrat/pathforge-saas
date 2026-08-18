@@ -19,7 +19,9 @@
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "db:generate": "prisma generate",
+    "db:pgvector": "ts-node scripts/ensure-pgvector.ts",
     "db:push": "prisma db push",
+    "db:setup": "npm run db:pgvector && npm run db:push",
     "db:seed": "npx ts-node src/prisma/seed.ts",
     "db:seed:prod": "node dist/src/prisma/seed.js",
     "postinstall": "node -e \"const fs=require('fs');const {execSync}=require('child_process');if(!process.env.DIRECT_URL||!fs.existsSync('prisma/schema.prisma')||!fs.existsSync('node_modules/prisma/package.json'))process.exit(0);execSync('npx prisma generate',{stdio:'inherit'})\""
